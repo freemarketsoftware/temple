@@ -8,15 +8,23 @@ Verified functions from source tree (`brain/real-temple-tree/`).
 
 | Function | Signature | Notes |
 |----------|-----------|-------|
-| `StrLen` | `I64 StrLen(U8 *str)` | |
+| `StrLen` | `I64 StrLen(U8 *str)` | Compiler intrinsic |
 | `StrCpy` | `U0 StrCpy(U8 *dst, U8 *src)` | |
 | `StrCmp` | `I64 StrCmp(U8 *a, U8 *b)` | 0=equal, <0=less, >0=greater |
-| `StrICmp` | `I64 StrICmp(U8 *a, U8 *b)` | Case-insensitive |
+| `StrICmp` | `I64 StrICmp(U8 *a, U8 *b)` | Case-insensitive compare |
+| `StrNCmp` | `I64 StrNCmp(U8 *a, U8 *b, I64 n)` | Compare first N bytes |
+| `StrNICmp` | `I64 StrNICmp(U8 *a, U8 *b, I64 n)` | Case-insensitive, N bytes |
+| `StrMatch` | `U8 *StrMatch(U8 *needle, U8 *haystack)` | Find needle in haystack; returns ptr or NULL |
+| `StrIMatch` | `U8 *StrIMatch(U8 *needle, U8 *haystack)` | Case-insensitive StrMatch |
+| `StrFind` | `U8 *StrFind(U8 *needle, U8 *haystack, I64 flags=0)` | Find with options |
+| `StrOcc` | `I64 StrOcc(U8 *src, I64 ch)` | Count occurrences of a char |
 | `StrNew` | `U8 *StrNew(U8 *buf, CTask *mem_task=NULL)` | MAlloc + copy; caller frees |
-| `StrPrint` | `I64 StrPrint(U8 *dst, U8 *fmt, ...)` | sprintf |
+| `StrPrint` | `U8 *StrPrint(U8 *dst, U8 *fmt, ...)` | sprintf |
 | `CatPrint` | `U8 *CatPrint(U8 *dst, U8 *fmt, ...)` | Append formatted string — **use instead of StrCat** |
 
 **No StrCat** — use `CatPrint(dst, "%s", src)` to append.
+**No StrUpr/StrLwr** — use `StrUtil(src, SUF_TO_UPPER)` / `StrUtil(src, SUF_TO_LOWER)`.
+**No StrRev, StrTrim.**
 
 ---
 
@@ -44,9 +52,19 @@ Verified functions from source tree (`brain/real-temple-tree/`).
 
 | Function | Signature | Notes |
 |----------|-----------|-------|
-| `Min` | `F64 Min(F64 n1, F64 n2)` | Floating point |
-| `Max` | `F64 Max(F64 n1, F64 n2)` | Floating point |
-| `AbsI64` | `I64 AbsI64(I64 n)` | Integer absolute value — **not `Abs`** |
+| `AbsI64` | `I64 AbsI64(I64 n)` | Integer abs — **not `Abs`** (that's F64) |
+| `MinI64` | `I64 MinI64(I64 n1, I64 n2)` | Integer min — **not `Min`** (that's F64) |
+| `MaxI64` | `I64 MaxI64(I64 n1, I64 n2)` | Integer max — **not `Max`** (that's F64) |
+| `SignI64` | `I64 SignI64(I64 n)` | Returns -1, 0, or 1 |
+| `ClampI64` | `I64 ClampI64(I64 num, I64 lo, I64 hi)` | Clamp to range |
+| `SqrI64` | `I64 SqrI64(I64 n)` | n * n |
+| `Min` | `F64 Min(F64 n1, F64 n2)` | Floating point only |
+| `Max` | `F64 Max(F64 n1, F64 n2)` | Floating point only |
+| `Clamp` | `F64 Clamp(F64 d, F64 lo, F64 hi)` | Floating point only |
+
+**I64 constants:** `I64_MAX` = `0x7FFFFFFFFFFFFFFF`, `I64_MIN` = `-0x8000000000000000` (defined in KernelA.HH)
+
+**StrPrint format:** `%d` for I64, `%f` for F64 — do NOT use `%d` on F64 results.
 
 ---
 

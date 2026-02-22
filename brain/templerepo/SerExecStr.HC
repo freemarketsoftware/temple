@@ -1,0 +1,1 @@
+U8 g_str[4096];I64 g_str_len=0;U0 GStrReset(){g_str_len=0;g_str[0]=0;}U0 GStrAdd(U8 *s){I64 i=0;while(s[i]&&g_str_len<4094){g_str[g_str_len++]=s[i++];}g_str[g_str_len]=0;}U0 SerSendStr(){UartPrint(g_str);GStrReset();UartPutChar(4);UartPutChar(202);UartPutChar(254);UartPutChar(186);UartPutChar(190);UartPutChar(4);UartPutChar(250);UartPutChar(206);}

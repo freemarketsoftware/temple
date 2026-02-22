@@ -1,0 +1,1 @@
+I64 g_r=0;U0 SerGetI64(I64 n){U8 buf[32];I64 i=0;I64 j;if(n==0){UartPutChar('0');}else{if(n<0){UartPutChar('-');n=-n;}while(n>0){buf[i++]='0'+n%10;n/=10;}for(j=i-1;j>=0;j--)UartPutChar(buf[j]);}UartPutChar(4);UartPutChar(202);UartPutChar(254);UartPutChar(186);UartPutChar(190);UartPutChar(4);UartPutChar(250);UartPutChar(206);}

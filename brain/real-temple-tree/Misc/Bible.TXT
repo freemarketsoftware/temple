@@ -1,0 +1,1 @@
+(#banned: multi-MB Bible text, transfer timeout)

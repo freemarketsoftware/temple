@@ -1,0 +1,6 @@
+*.qcow2
+*.iso
+*.ISO
+__pycache__/
+*.pyc
+*.sock

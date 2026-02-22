@@ -1,0 +1,1 @@
+U0 SerDir(U8 *path){I64 *d=FilesFind(path);while(d){UartPrint(d[3]);UartPutChar(10);d=d[0];}UartPutChar(4);UartPutChar(202);UartPutChar(254);UartPutChar(186);UartPutChar(190);UartPutChar(4);UartPutChar(250);UartPutChar(206);}

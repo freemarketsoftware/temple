@@ -36,6 +36,11 @@ Verified functions from source tree (`brain/real-temple-tree/`).
 | `CAlloc` | `U8 *CAlloc(I64 size, CTask *mem_task=NULL)` | Zero-initialized |
 | `Free` | `U0 Free(U8 *addr)` | |
 | `MSize` | `I64 MSize(U8 *src)` | Size of allocation |
+| `MemCpy` | `U8 *MemCpy(U8 *dst, U8 *src, I64 cnt)` | Returns dst |
+| `MemCmp` | `I64 MemCmp(U8 *a, U8 *b, I64 cnt)` | 0=equal, 1=a>b, -1=a<b |
+| `MemSet` | `U0 MemSet(U8 *dst, U8 val, I64 cnt)` | Fill with byte |
+| `MemSet_U16` | `U0 MemSet_U16(U8 *dst, U16 val, I64 cnt)` | Fill with 16-bit word |
+| `MemSet_I64` | `U0 MemSet_I64(U8 *dst, I64 val, I64 cnt)` | Fill with 64-bit qword |
 
 ---
 
@@ -43,7 +48,7 @@ Verified functions from source tree (`brain/real-temple-tree/`).
 
 | Function | Signature | Notes |
 |----------|-----------|-------|
-| `FileWrite` | `I64 FileWrite(U8 *path, U8 *buf, I64 size, CDate cdt=0, I64 attr=0)` | Returns bytes written |
+| `FileWrite` | `I64 FileWrite(U8 *path, U8 *buf, I64 size, CDate cdt=0, I64 attr=0)` | Returns disk sector index (NOT byte count) — increments by 2 per call |
 | `FileRead` | `U8 *FileRead(U8 *path, I64 *_size=NULL, I64 *_attr=NULL)` | Returns MAlloced buf; caller frees |
 
 ---

@@ -44,6 +44,14 @@ Active issues, known problems, and notable findings to investigate.
 
 ## Kernel Bugs
 
+### BUG: Use-after-free is silent — no detection, no crash
+- **Status:** Confirmed (2026-02-22)
+- **Severity:** High — heap corruption goes undetected
+- **Behavior:** Writing to a freed pointer (`p[0] = 0x41` after `Free(p)`) does not crash. A subsequent `MAlloc(64)` returns successfully. The corruption is silent — there is no guard page, no canary, no allocator check.
+- **Related:** MAlloc immediately reuses the freed address for the next same-size allocation. So a use-after-free write directly corrupts the next allocation's data.
+- **Evidence:** `write_after_free` survived, `alloc_after_uaf` returned non-null. `reuse_same_addr` = yes (same pointer returned on next alloc of same size).
+- **Source to investigate:** `Kernel/Mem/MAllocFree.HC`
+
 ### BUG: Double-free causes kernel panic
 - **Status:** Confirmed (2026-02-22)
 - **Severity:** High — any use-after-free or double-free crashes the entire OS
@@ -64,6 +72,22 @@ Active issues, known problems, and notable findings to investigate.
 ---
 
 ## Notable Findings
+
+### MAlloc(0) returns non-null, MSize=0, Free survives
+- **Status:** Confirmed (2026-02-22)
+- **Detail:** `MAlloc(0)` returns a valid non-null pointer. `MSize(p)` on it returns 0. `Free(p)` does not crash. Benign behavior — consistent with many C allocator implementations.
+
+### MSize(NULL) returns 0, no panic
+- **Status:** Confirmed (2026-02-22)
+- **Detail:** `MSize(0)` returns 0 without crashing. The allocator has a null guard in MSize (or the metadata read at address 0 returns 0 coincidentally). Either way, it's safe to call.
+
+### MSize on freed pointer reports original size
+- **Status:** Confirmed (2026-02-22)
+- **Detail:** After `Free(p)`, `MSize(p)` still returns the original allocation size (e.g., 128 for `MAlloc(128)`). The allocator does not zero out or invalidate heap metadata on free.
+
+### MAlloc reuses freed addresses immediately
+- **Status:** Confirmed (2026-02-22)
+- **Detail:** `p1 = MAlloc(64); Free(p1); p2 = MAlloc(64);` — `p1 == p2`. The allocator returns the exact same address on the next same-size allocation. Combined with the use-after-free bug, this means a stale pointer write directly corrupts the next allocation's content.
 
 ### FileWrite returns a disk sector index, not byte count
 - **Status:** Confirmed (2026-02-22)

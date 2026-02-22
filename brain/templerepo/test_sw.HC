@@ -1,0 +1,1 @@
+UartPrint("SerFileWrite works!\n");

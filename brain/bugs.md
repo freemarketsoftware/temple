@@ -42,6 +42,27 @@ Active issues, known problems, and notable findings to investigate.
 
 ---
 
+## Kernel Bugs
+
+### BUG: Double-free causes kernel panic
+- **Status:** Confirmed (2026-02-22)
+- **Severity:** High — any use-after-free or double-free crashes the entire OS
+- **Behavior:** `Free(p); Free(p);` immediately panics TempleOS. No error is reported, no exception is thrown — the kernel just dies.
+- **Root cause:** TempleOS's allocator has no double-free detection. The second `Free` likely corrupts heap metadata, causing a hardware fault on the next memory access.
+- **Impact:** Any bug that frees a pointer twice will panic the machine, with no way to recover short of a snapshot restore.
+- **Source to investigate:** `Kernel/Mem/MAllocFree.HC`
+
+### BUG: MAlloc panics on OOM instead of returning NULL
+- **Status:** Confirmed (2026-02-22)
+- **Severity:** High — crashes the entire system on large allocations
+- **Behavior:** `MAlloc(size)` panics TempleOS when `size` exceeds available heap (~256–320MB in a 512MB VM). A correct allocator should return NULL on failure.
+- **Evidence:** `MAlloc(256MB)` succeeds and returns non-null. `MAlloc(320MB)` causes immediate kernel panic (serial goes silent, REPL unresponsive). Threshold is between 256MB and 320MB.
+- **Root cause:** TempleOS's allocator likely does not check for heap exhaustion before writing — it probably just bumps a pointer past the end of available memory, causing a hardware page fault in kernel mode.
+- **Impact:** Any code path that allocates unbounded memory (e.g., reading a large file) can crash the OS with no recovery.
+- **Source to investigate:** `Kernel/Mem/MAllocFree.HC`
+
+---
+
 ## Notable Findings
 
 ### FileWrite returns a disk sector index, not byte count

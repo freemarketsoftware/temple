@@ -144,6 +144,9 @@ class Temple:
         self.send_cmd('#include "C:/Home/SerMkDir.HC";')
         self.send_cmd('#include "C:/Home/SerExecI64.HC";')
         self.send_cmd('#include "C:/Home/SerExecStr.HC";')
+        self.send_cmd('#include "C:/Home/SerSymExists.HC";')
+        self.send_cmd('#include "C:/Home/SerSymList.HC";')
+        self.send_cmd('#include "C:/Home/SerMemInfo.HC";')
 
     def unfreeze(self):
         """Send EXIT to stop the REPL loop."""
@@ -279,6 +282,64 @@ class Temple:
             name = raw[7:].decode(errors='replace').strip()
             raise TempleException(name)
         return raw.decode(errors='replace') if raw else ''
+
+    def symbol_exists(self, name: str) -> bool:
+        """Return True if name is defined in the current TempleOS symbol table."""
+        return self.exec_str(f'SerSymExists("{name}");') == '1'
+
+    def list_symbols(self, kind='functions', detailed=False) -> list:
+        """
+        Return symbols from the TempleOS hash table chain.
+        kind: 'functions', 'globals', 'classes', 'all'
+        detailed=False: returns list of names.
+        detailed=True:  returns list of (name, kind) tuples.
+        """
+        masks = {'functions': 64, 'globals': 8, 'classes': 16, 'all': 131071}
+        mask = masks.get(kind, 64)
+        raw = self.send_cmd(f'SerSymList({mask});')
+        if not raw:
+            return []
+        rows = [line.split('\t') for line in raw.decode(errors='replace').splitlines() if line]
+        if detailed:
+            return [(r[0], r[1] if len(r) > 1 else '') for r in rows]
+        return [r[0] for r in rows]
+
+    def run_hc(self, code: str, call: str = '',
+               path: str = 'C:/AI/code/_tmp.HC'):
+        """
+        Write HolyC source to TempleOS, compile it via #include, optionally
+        call a function and return its exec_str result.
+        code: HolyC source as a Python string (use \\n for newlines).
+        call: optional HolyC expression to exec_str after loading.
+        path: destination path on TempleOS filesystem.
+        """
+        self.write_file(path, code.encode())
+        self.send_cmd(f'#include "{path}";')
+        if call:
+            return self.exec_str(call)
+        return None
+
+    def exec_rows(self, code: str) -> list:
+        """Execute HolyC code via exec_str, parse result as TSV rows.
+        Each line in the result becomes a list of fields split by tab.
+        """
+        raw = self.exec_str(code)
+        return [line.split('\t') for line in raw.splitlines() if line]
+
+    def exec_kv(self, code: str) -> dict:
+        """Execute HolyC code via exec_str, parse result as key\\tvalue pairs."""
+        return {r[0]: (r[1] if len(r) > 1 else '') for r in self.exec_rows(code) if r}
+
+    def mem_info(self) -> dict:
+        """Return TempleOS memory stats as a dict with integer values."""
+        kv = self.exec_kv('SerMemInfo();')
+        result = {}
+        for k, v in kv.items():
+            try:
+                result[k] = int(v)
+            except ValueError:
+                result[k] = v
+        return result
 
     # -------------------------------------------------------------------------
     # Helpers

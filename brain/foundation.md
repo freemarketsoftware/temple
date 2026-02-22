@@ -19,11 +19,14 @@ SerReplExe's buffer was increased from 256 to 4096 bytes. However, investigation
 
 ## 2. Richer Introspection
 
-**Symbol awareness**
-Know what functions and globals are currently defined in the compiler context. Right now Claude is essentially blind — it assumes things exist. Being able to query "is `Foo` defined?" changes everything.
+**Symbol awareness** ✅
+`SerSymExists.HC` — point query: `t.symbol_exists("Foo")` → True/False. Uses `HashFind(name, Fs->hash_table, HTT_FUN|HTT_GLBL_VAR|HTT_CLASS)` which walks the full hash table chain (task → parent → Adam).
+`SerSymList.HC` — bulk dump: `t.list_symbols('functions')` → list of names. Walks the full chain manually, streams names over UART. Returns 2262 functions and 245 globals on a standard frozen session.
 
-**Structured output**
-`exec_str` returns a flat string. For complex queries (memory state, task list, defined symbols) we need something closer to structured data — even basic CSV or key=value is enough.
+**Structured output** ✅
+Convention: TSV (`\t`-separated fields, `\n`-separated rows). HolyC side uses `GStrAdd` with formatted lines; Python side uses `exec_rows(code)` → list of lists, `exec_kv(code)` → dict.
+`SerMemInfo.HC` — concrete example: returns `code_used`, `code_total`, `heap_limit` as TSV. `t.mem_info()` returns `{'code_used': 159MB, 'code_total': 510MB, ...}`.
+`SerSymList.HC` updated to emit `name\tkind` (fun/glbl/class) per row. `t.list_symbols(detailed=True)` returns `[(name, kind), ...]`. Note: `\n` in Python strings is a literal newline byte — use raw strings (`r'...'`) when embedding HolyC escape sequences in exec_str calls.
 
 ---
 
@@ -47,8 +50,8 @@ Write HolyC → deploy → load → execute → capture result → iterate. Make
 | Crash recovery            | 1     | ✅ done  |
 | Larger execution buffer   | 1     | ✅ done  |
 | Exception capture         | 1     | ✅ done  |
-| Symbol awareness          | 2     | pending |
-| Structured output         | 2     | pending |
+| Symbol awareness          | 2     | ✅ done  |
+| Structured output         | 2     | ✅ done  |
 | Session management        | 3     | pending |
 | Persistent AI workspace   | 3     | pending |
 | Code generation pipeline  | 3     | pending |

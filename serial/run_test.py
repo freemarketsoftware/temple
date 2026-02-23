@@ -58,7 +58,7 @@ def main():
 
         lines = raw.decode(errors='replace').splitlines()
         print()
-        passed = failed = 0
+        passed = failed = obs = 0
         for line in lines[1:]:  # skip header
             if not line.strip():
                 continue
@@ -66,12 +66,20 @@ def main():
             name = parts[0] if len(parts) > 0 else '?'
             status = parts[1] if len(parts) > 1 else '?'
             detail = parts[2] if len(parts) > 2 else ''
-            marker = '[PASS]' if status == 'PASS' else '[FAIL]'
+            if status == 'PASS':
+                marker = '[PASS]'
+                passed += 1
+            elif status == 'OBS':
+                marker = '[OBS] '
+                obs += 1
+            else:
+                marker = '[FAIL]'
+                failed += 1
             print(f'  {marker} {name}: {detail}')
-            if status == 'PASS': passed += 1
-            else: failed += 1
 
-        print(f'\nResult: {passed} passed, {failed} failed')
+        summary = f'{passed} passed, {failed} failed'
+        if obs: summary += f', {obs} obs'
+        print(f'\nResult: {summary}')
         t.unfreeze()
 
 if __name__ == '__main__':

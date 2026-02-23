@@ -91,6 +91,17 @@ Active issues, known problems, and notable findings to investigate.
 
 ## Notable Findings
 
+### I64_MIN / -1 does NOT throw — compiler eliminates IDIV
+- **Status:** Confirmed (2026-02-22)
+- **Detail:** `I64_MIN / -1` does not trigger a hardware divide-overflow exception. On x86, IDIV of INT_MIN/-1 should raise DE (#0), same as divide-by-zero. HolyC's JIT compiler appears to convert `x / -1` to a NEG instruction, bypassing IDIV entirely. The result silently wraps back to I64_MIN (since NEG(I64_MIN) = I64_MIN in 2's complement).
+- **Impact:** Code that expects `I64_MIN / -1` to throw can't rely on that. Validate divisors independently if -1 is a concern.
+
+### I64 arithmetic overflows silently (2's complement)
+- **Status:** Confirmed (2026-02-22)
+- **Detail:** All I64 overflow is silent and wraps as expected in 2's complement: I64_MAX+1 = I64_MIN, I64_MIN-1 = I64_MAX, I64_MAX*2 = -2, I64_MAX*I64_MAX = 1. No exception is thrown. This matches standard x86 integer behavior — TempleOS adds no overflow checking.
+
+
+
 ### MAlloc(0) returns non-null, MSize=0, Free survives
 - **Status:** Confirmed (2026-02-22)
 - **Detail:** `MAlloc(0)` returns a valid non-null pointer. `MSize(p)` on it returns 0. `Free(p)` does not crash. Benign behavior — consistent with many C allocator implementations.

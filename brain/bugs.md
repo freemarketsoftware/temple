@@ -139,3 +139,25 @@ Active issues, known problems, and notable findings to investigate.
 ### No StrCat in HolyC — use CatPrint
 - **Status:** Confirmed
 - **Detail:** `StrCat` does not exist in TempleOS. `CatPrint(dst, "%s", src)` is the correct replacement. It modifies `dst` in-place and returns a pointer to `dst`.
+
+### Global variables are NOT zero-initialized
+- **Status:** Confirmed (2026-02-22)
+- **Detail:** An uninitialized global holds whatever is in memory at startup — observed value was `3421769` (garbage). Unlike C where globals are guaranteed zero-initialized, HolyC does not zero globals. Always provide an explicit initializer: `I64 g_counter = 0;`
+- **Impact:** Any global used as a counter, flag, or accumulator without explicit init will start with garbage. Silent bugs if you assume zero.
+
+### StrPrint `%-N` left-justify flag is non-functional
+- **Status:** Confirmed (2026-02-22)
+- **Detail:** `%-5d` behaves identically to `%5d` — always right-aligns, ignoring the `-` flag. The flag `PRTF_LEFT_JUSTIFY` exists in the source but the implementation does not honour it for integer formats.
+- **Workaround:** Implement manual left-padding if needed.
+
+### StrPrint `%g` behaves unexpectedly
+- **Status:** Confirmed (2026-02-22)
+- **Detail:** `%g` applied to `12345.0` produced `       12345` — a right-padded field, not a general float like C's `%g`. Likely internally maps to a different formatting path. Avoid `%g` — use `%.Nf` or `%e` instead.
+
+### StrPrint `%e` differs from C standard
+- **Status:** Confirmed (2026-02-22)
+- **Detail:** `%e` of `12345.0` produces `1.23450000e4`, not `1.23450000e+04`. No `+` sign in the exponent, and no leading zero (e.g. `e4` not `e04`). Code parsing `%e` output that expects C-standard format will break.
+
+### StrPrint `%n` engineering notation requires extra args
+- **Status:** Confirmed (2026-02-22)
+- **Detail:** `%n` of `1500.0` produced `1.50000000e3` — same as `%e`, no SI prefix (e.g. no `1.5K`). The SI prefix feature appears to require auxiliary format arguments not yet understood. Do not use `%n` expecting automatic SI prefixes.

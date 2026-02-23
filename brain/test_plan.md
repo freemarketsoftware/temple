@@ -53,7 +53,7 @@ Update this file as tests are written and results are confirmed.
 |-----------|------|--------|-------|
 | TestGlobals | Global variable persistence, init behavior | ✅ | 11/11 pass — globals NOT zero-initialized by default; persist correctly across calls |
 | TestFmtSpec | StrPrint %X, %b, width/padding specifiers | ✅ | 18/18 pass — %-N left-align ignored; %e no + in exponent; %,d thousands; %,X groups by 4 |
-| TestFnPtr | HolyC function pointers, callbacks | ⏳ | |
+| TestFnPtr | HolyC function pointers, callbacks | ✅ | 12/12 pass — typed fp locals unsupported; use global fp declarations |
 
 ---
 

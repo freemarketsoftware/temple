@@ -156,6 +156,7 @@ ecode[8] = 0;
 
 ## HolyC Notes
 
+- **Typed function pointer locals are unsupported** — `I64 (*fp)(I64 x) = &Fn;` inside a function body silently prevents the function from executing. Always declare function pointer variables at **global scope** (`I64 (*g_fp)(I64 x) = 0;`) and assign/call them from inside functions. Plain `I64 fp = &Fn;` (assign only) is safe as a local but calling via it fails too.
 - **Ternary `?:`** is unreliable with pointer/comparison conditions — use `if/else` to assign a `U8 *status` variable, then use `status` in `StrPrint`. Integer ternary may also fail. Safest: always use `if/else`.
 - Default arguments supported: `MAlloc(64)` uses `mem_task=NULL`
 - 255-byte line limit in `exec_str` (lexer hard limit); use `run_hc()` for longer code

@@ -124,6 +124,15 @@ Active issues, known problems, and notable findings to investigate.
 - **Evidence:** Called 4 times with sizes 3, 3, 5, 1 — returned 23129, 23131, 23133, 23135 (always +2).
 - **Implication:** Do not use FileWrite's return value to verify write success. Use FileRead + MemCmp instead.
 
+### BUG: Typed function pointer local variables silently break HolyC functions
+- **Status:** Confirmed (2026-02-23)
+- **Severity:** Medium — silent failure, no error reported
+- **Behavior:** Declaring a typed function pointer local variable inside a function body (e.g. `I64 (*fp)(I64 x) = &Fn;` or `U0 (*fp)() = &Fn;`) silently causes the entire function to never execute. The REPL returns `OK`, no exception is thrown, but the function body is never entered.
+- **Also affected:** `I64 fp = &Fn; (*fp)(args);` — storing a function address as a plain I64 local and then dereferencing to call also fails silently.
+- **What DOES work:** Declare function pointer variables at global scope (`I64 (*g_fp)(I64 x) = 0;`), then assign and call them from inside functions.
+- **Workaround:** Move all typed function pointer variables to global scope. Local `I64 fp = &Fn;` (assign only, no call) is safe but the call via local I64 does not work.
+- **Evidence:** TestFnPtr.HC — first version with local fp vars produced no results file; rewrite using global fp vars: 12/12 pass.
+
 ### Ternary operator `?:` unreliable with pointer/comparison conditions
 - **Status:** Confirmed (2026-02-22)
 - **Detail:** `p != 0 ? "PASS" : "FAIL"` causes a silent exception in HolyC compiled files. Integer ternary (`1 ? 42 : 0`) also fails in exec_str context. Root cause unknown — may be related to `?` being a help operator in TempleOS's interactive mode interfering with compilation.

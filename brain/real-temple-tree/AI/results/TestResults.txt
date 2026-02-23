@@ -49,7 +49,7 @@ catprint_append	PASS	0
 catprint_from_empty	PASS	0
 # TestFileIO
 basic_roundtrip	PASS	5
-filewrite_retval_nonzero	PASS	24346
+filewrite_retval_nonzero	PASS	24511
 fileread_size	PASS	3
 overwrite	PASS	6
 large_1kb_size	PASS	1024
@@ -209,7 +209,7 @@ global_persist	PASS	3
 global_read_via_fn	PASS	3
 global_shared_state	PASS	1
 global_direct_write	PASS	99
-global_uninit	OBS	31525197395015241
+global_uninit	OBS	28147497674487369
 global_array	PASS	10 20 30 40
 global_struct	PASS	77 88
 global_string	PASS	hello
@@ -255,17 +255,17 @@ fp_as_arg_double	PASS	12
 fp_as_arg_square	PASS	36
 fp_call_no_deref	PASS	20
 # TestDateTime
-now_nonzero	PASS	740034/3928006085
+now_nonzero	PASS	740034/3948536426
 year_range	PASS	2026
 mon_range	PASS	2
 day_range	PASS	23
-hour_range	PASS	21
-min_range	PASS	56
-sec_range	PASS	58
+hour_range	PASS	22
+min_range	PASS	3
+sec_range	PASS	51
 dow_range	PASS	1
-timer_monotonic	PASS	161831195998->161831196006
-timer_advances	PASS	delta=59343
-ts_positive	PASS	136488
+timer_monotonic	PASS	162318572924->162318572931
+timer_advances	PASS	delta=68624
+ts_positive	PASS	136900
 ts_advances	PASS	delta=0
 now_monotonic	PASS
 year_stable	PASS	2026
@@ -308,3 +308,22 @@ int_two	PASS
 str_asc	PASS	apple avocado banana cherry
 str_presorted	PASS
 str_duplicates	PASS
+# TestKernelUtils
+bcnt_0	PASS
+bcnt_1	PASS
+bcnt_0xff	PASS
+bcnt_all_bits	PASS
+bcnt_checkerboard	PASS
+bcnt_msb_only	PASS
+bcnt_deadbeef	PASS	24
+eu16_swap	PASS	3412
+eu16_0001	PASS	100
+eu16_ffff	PASS
+eu16_roundtrip	PASS
+eu32_swap	PASS	78563412
+eu32_0001	PASS	1000000
+eu32_ffff	PASS
+eu32_roundtrip	PASS
+ei64_swap	PASS	807060504030201
+ei64_0001	PASS	100000000000000
+ei64_roundtrip	PASS

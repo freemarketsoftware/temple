@@ -32,6 +32,7 @@
 #include "C:/AI/tests/TestDirOps.HC"
 #include "C:/AI/tests/TestF64Edge.HC"
 #include "C:/AI/tests/TestQSort.HC"
+#include "C:/AI/tests/TestKernelUtils.HC"
 
 U0 TestRunner() {
   U8 *out = MAlloc(131072);
@@ -62,6 +63,7 @@ U0 TestRunner() {
   CatPrint(out, "# TestDirOps\n");    TestDirOps(out);
   CatPrint(out, "# TestF64Edge\n");   TestF64Edge(out);
   CatPrint(out, "# TestQSort\n");     TestQSort(out);
+  CatPrint(out, "# TestKernelUtils\n"); TestKernelUtils(out);
 
   FileWrite("C:/AI/results/TestResults.txt", out, StrLen(out));
   Free(out);

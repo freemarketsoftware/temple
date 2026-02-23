@@ -88,3 +88,50 @@ Each should run standalone (not via TestRunner) until stability is confirmed.
 |-----------|------|--------|-------|
 | TestTasks | Spawn, Kill, DeathWait, TaskValidate, Yield, arg passing | ✅ | 8/8 pass — tasks work from REPL context; DeathWait does NOT null the ptr; neg args work; standalone only |
 | TestPCI | PCI bus enumeration via PCIReadU16/U32/U8, PCIClassFind — detect e1000 NIC | ✅ | 10/10 pass — TempleOS uses BIOS-based PCIReadXX not raw port I/O; e1000 at bus=0,dev=3,func=0 (8086:100E); standalone only |
+
+---
+
+## Backfill — Tier 1B (now unblocked)
+
+Deferred earlier; now relevant as prerequisites for pointer-heavy driver work.
+
+| Test File | Area | Status | Notes |
+|-----------|------|--------|-------|
+| TestPointers | Pointer arithmetic, address-of, casting, struct ptr access | ⏳ | Was ⏸; needed for descriptor ring management in e1000 driver |
+| TestStrConv | StrToI64, I64ToStr, hex string parsing, number formatting | ⏳ | Needed for packet field parsing and MAC/IP address formatting |
+
+---
+
+## Tier 5 — e1000 NIC Driver
+
+Build a working NIC driver from scratch. TempleOS is identity-mapped (phys == virt), so BAR0 MMIO is directly accessible via pointer dereference. All standalone — NIC init/Tx/Rx could panic if descriptor rings are malformed.
+
+| Test File | Area | Status | Notes |
+|-----------|------|--------|-------|
+| TestE1000BAR | Read BAR0 MMIO base addr via PCIReadU32; probe status register | ⏳ | Confirms MMIO is accessible; low risk read-only probe |
+| TestE1000MAC | Read burned-in MAC address from e1000 EEPROM / RAL/RAH registers | ⏳ | Needed before any TX/RX |
+| TestE1000Init | Full NIC init: reset, set MAC, RX/TX descriptor rings, enable | ⏳ | High risk — malformed ring setup can panic; do last |
+| TestE1000Tx | Transmit a raw Ethernet frame (ARP request or padding frame) | ⏳ | Requires TestE1000Init passing |
+| TestE1000Rx | Receive a frame — may use QEMU loopback or ICMP echo from host | ⏳ | Requires TestE1000Init + Tx working |
+
+---
+
+## Tier 6 — Protocol Building Blocks
+
+Pure computation first (no hardware) — packet construction and checksum. Safe to add to TestRunner once stable.
+
+| Test File | Area | Status | Notes |
+|-----------|------|--------|-------|
+| TestArpPkt | ARP packet construction + field parsing (pure computation) | ⏳ | No hardware; validates byte-packing of Ethernet+ARP headers |
+| TestIPv4Pkt | IPv4 header construction, ones-complement checksum | ⏳ | Checksum algo must be confirmed before sending real packets |
+| TestUDPPkt | UDP header + checksum (needs IP pseudo-header) | ⏳ | Depends on TestIPv4Pkt checksum being correct |
+| TestICMP | ICMP echo request via e1000 Tx, receive reply via Rx | ⏳ | First live network round-trip; requires Tier 5 complete |
+
+---
+
+## Tier 7 — Application Layer
+
+| Test File | Area | Status | Notes |
+|-----------|------|--------|-------|
+| TestDHCP | DHCP discover/offer/request/ack — get IP from QEMU's built-in DHCP | ⏳ | Requires UDP stack; QEMU provides DHCP on 10.0.2.2 by default |
+| TestHTTPGet | HTTP GET request to host via QEMU user-mode network (10.0.2.2:80) | ⏳ | End goal — requires full stack: e1000 + IP + TCP + HTTP |

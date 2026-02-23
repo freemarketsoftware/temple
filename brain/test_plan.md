@@ -98,7 +98,7 @@ Deferred earlier; now relevant as prerequisites for pointer-heavy driver work.
 | Test File | Area | Status | Notes |
 |-----------|------|--------|-------|
 | TestPointers | Pointer arithmetic, address-of, casting, struct ptr, double ptr, buf_cast | ✅ | 9/9 pass — all pointer patterns work; buf_cast (typed ptr at offset) confirmed for packet parsing |
-| TestStrConv | StrToI64, I64ToStr, hex string parsing, number formatting | ⏳ | Needed for packet field parsing and MAC/IP address formatting |
+| TestStrConv | Str2I64, Str2F64, StrScan, MStrPrint | ✅ | 20/20 pass + 1 obs — 0o octal prefix unsupported (use radix=8); Str2F64 exp notation needs range check not == |
 
 ---
 

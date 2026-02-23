@@ -34,6 +34,7 @@
 #include "C:/AI/tests/TestQSort.HC"
 #include "C:/AI/tests/TestKernelUtils.HC"
 #include "C:/AI/tests/TestPointers.HC"
+#include "C:/AI/tests/TestStrConv.HC"
 
 U0 TestRunner() {
   U8 *out = MAlloc(131072);
@@ -66,6 +67,7 @@ U0 TestRunner() {
   CatPrint(out, "# TestQSort\n");     TestQSort(out);
   CatPrint(out, "# TestKernelUtils\n"); TestKernelUtils(out);
   CatPrint(out, "# TestPointers\n");  TestPointers(out);
+  CatPrint(out, "# TestStrConv\n");  TestStrConv(out);
 
   FileWrite("C:/AI/results/TestResults.txt", out, StrLen(out));
   Free(out);

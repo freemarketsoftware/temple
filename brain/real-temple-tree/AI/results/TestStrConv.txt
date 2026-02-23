@@ -1,0 +1,24 @@
+suite	name	status	detail
+# TestStrConv
+str2i64_dec	PASS
+str2i64_neg	PASS
+str2i64_hex_prefix	PASS	FF
+str2i64_bin_prefix	PASS	10
+str2i64_oct_prefix	obs	0 (0o unsupported, not 15)
+str2i64_radix16	PASS	FF
+str2i64_radix2	PASS	10
+str2i64_radix8	PASS	15
+str2i64_ws	PASS
+str2i64_endptr	PASS	v=123 ch=a
+str2i64_large	PASS	DEADBEEF
+str2i64_zero	PASS
+str2f64_pi	PASS	3.14
+str2f64_neg	PASS	-2.5
+str2f64_exp	PASS	1500
+str2f64_roundtrip	PASS	3.14159
+strscan_dec	PASS	42
+strscan_hex	PASS	FF
+strscan_flt	PASS	3.14
+strscan_multi	PASS	10_20
+mstrprint	PASS	v=99
+strprint_zpad	PASS	00000ABC

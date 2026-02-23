@@ -49,7 +49,7 @@ catprint_append	PASS	0
 catprint_from_empty	PASS	0
 # TestFileIO
 basic_roundtrip	PASS	5
-filewrite_retval_nonzero	PASS	25179
+filewrite_retval_nonzero	PASS	25437
 fileread_size	PASS	3
 overwrite	PASS	6
 large_1kb_size	PASS	1024
@@ -209,7 +209,7 @@ global_persist	PASS	3
 global_read_via_fn	PASS	3
 global_shared_state	PASS	1
 global_direct_write	PASS	99
-global_uninit	OBS	31525197395015241
+global_uninit	OBS	28147497674487369
 global_array	PASS	10 20 30 40
 global_struct	PASS	77 88
 global_string	PASS	hello
@@ -255,17 +255,17 @@ fp_as_arg_double	PASS	12
 fp_as_arg_square	PASS	36
 fp_call_no_deref	PASS	20
 # TestDateTime
-now_nonzero	PASS	740034/4096523899
+now_nonzero	PASS	740034/4271056656
 year_range	PASS	2026
 mon_range	PASS	2
 day_range	PASS	23
-hour_range	PASS	22
-min_range	PASS	53
-sec_range	PASS	28
+hour_range	PASS	23
+min_range	PASS	51
+sec_range	PASS	59
 dow_range	PASS	1
-timer_monotonic	PASS	165856059939->165856059949
-timer_advances	PASS	delta=88952
-ts_positive	PASS	139873
+timer_monotonic	PASS	170042917889->170042917899
+timer_advances	PASS	delta=68980
+ts_positive	PASS	143384
 ts_advances	PASS	delta=0
 now_monotonic	PASS
 year_stable	PASS	2026
@@ -337,3 +337,26 @@ ptr_cmp	PASS
 heap_ptr	PASS	100 200 300
 double_ptr	PASS	x=99 swapped=77
 buf_cast	PASS	u16=504 u32=B0A0908
+# TestStrConv
+str2i64_dec	PASS
+str2i64_neg	PASS
+str2i64_hex_prefix	PASS	FF
+str2i64_bin_prefix	PASS	10
+str2i64_oct_prefix	obs	0 (0o unsupported, not 15)
+str2i64_radix16	PASS	FF
+str2i64_radix2	PASS	10
+str2i64_radix8	PASS	15
+str2i64_ws	PASS
+str2i64_endptr	PASS	v=123 ch=a
+str2i64_large	PASS	DEADBEEF
+str2i64_zero	PASS
+str2f64_pi	PASS	3.14
+str2f64_neg	PASS	-2.5
+str2f64_exp	PASS	1500
+str2f64_roundtrip	PASS	3.14159
+strscan_dec	PASS	42
+strscan_hex	PASS	FF
+strscan_flt	PASS	3.14
+strscan_multi	PASS	10_20
+mstrprint	PASS	v=99
+strprint_zpad	PASS	00000ABC

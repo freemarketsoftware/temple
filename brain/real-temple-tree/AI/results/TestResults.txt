@@ -49,7 +49,7 @@ catprint_append	PASS	0
 catprint_from_empty	PASS	0
 # TestFileIO
 basic_roundtrip	PASS	5
-filewrite_retval_nonzero	PASS	24207
+filewrite_retval_nonzero	PASS	24346
 fileread_size	PASS	3
 overwrite	PASS	6
 large_1kb_size	PASS	1024
@@ -209,7 +209,7 @@ global_persist	PASS	3
 global_read_via_fn	PASS	3
 global_shared_state	PASS	1
 global_direct_write	PASS	99
-global_uninit	OBS	28147497674487369
+global_uninit	OBS	31525197395015241
 global_array	PASS	10 20 30 40
 global_struct	PASS	77 88
 global_string	PASS	hello
@@ -255,17 +255,17 @@ fp_as_arg_double	PASS	12
 fp_as_arg_square	PASS	36
 fp_call_no_deref	PASS	20
 # TestDateTime
-now_nonzero	PASS	740034/3809993905
+now_nonzero	PASS	740034/3928006085
 year_range	PASS	2026
 mon_range	PASS	2
 day_range	PASS	23
 hour_range	PASS	21
-min_range	PASS	17
-sec_range	PASS	24
+min_range	PASS	56
+sec_range	PASS	58
 dow_range	PASS	1
-timer_monotonic	FAIL	159018355704->159018354564
-timer_advances	PASS	delta=64757
-ts_positive	PASS	134115
+timer_monotonic	PASS	161831195998->161831196006
+timer_advances	PASS	delta=59343
+ts_positive	PASS	136488
 ts_advances	PASS	delta=0
 now_monotonic	PASS
 year_stable	PASS	2026
@@ -296,3 +296,15 @@ toi64_inf	OBS	-9223372036854775808
 nan_eq_nan	OBS	1
 nan_lt_one	OBS	1
 fp_precision_80bit	OBS	1
+# TestQSort
+int_asc	PASS	1 2 3 5 8 9
+int_desc	PASS	9 8 5 3 2 1
+int_presorted	PASS
+int_reverse	PASS
+int_single	PASS
+int_duplicates	PASS	1 1 2 3 3
+int_negatives	PASS	-3 -1 0 2 5
+int_two	PASS
+str_asc	PASS	apple avocado banana cherry
+str_presorted	PASS
+str_duplicates	PASS

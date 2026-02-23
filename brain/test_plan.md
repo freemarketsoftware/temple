@@ -74,7 +74,7 @@ These round out API coverage and are directly relevant to the networking/hardwar
 | TestDirOps | DirMk, FilesFind, Del on dirs, directory traversal | ✅ | 10/10 pass — Del(path,FALSE,TRUE) required to delete dirs; Del alone is files-only |
 | TestF64Edge | F64 infinity, overflow, NaN, special values | ✅ | 15/15 — FP exceptions masked; NaN==NaN→1 (non-IEEE); 0.1+0.2==0.3 (x87 80-bit); F64 locals in fns crash OS (use globals) |
 | TestDateTime | Now(), Date2Struct, SysTimerRead, tS, Sleep | ✅ | 14/14 pass — Struct2Date + NowDateTimeStruct panic from JIT context; skipped |
-| TestQSort | QSort on integer and string arrays | ⏳ | |
+| TestQSort | QSort on integer and string arrays | ✅ | 11/11 pass — QSortI64 for ints, QSort(width=8) for string ptrs; comparators must be global fns |
 | TestKernelUtils | BCnt (count set bits), EndianU16/U32/I64 (byte-swap) | ⏳ | Endian functions needed for network protocol work |
 
 ---

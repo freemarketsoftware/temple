@@ -41,11 +41,14 @@ Active issues, known problems, and notable findings to investigate.
 - **Workaround:** Rule 6 covers this — always send `Dir;` after the include. See `serial/temple.py freeze()`.
 
 ### SerReplExe exception scope: div-by-zero in called function kills REPL
+- **Status:** FIXED (2026-02-22) — SerReplExe wraps `ExeFile` in `try/catch`; exceptions from called functions are caught and reported as `EXCEPT:<name>` over serial.
+- **Fix detail:** SerReplExe.HC uses `try{ExeFile(...);}catch{...StrPrint(ex,"EXCEPT:%s",ecode);}`. Confirmed: `throw('DivZero')` and hardware div-by-zero in called functions both return `EXCEPT:DivZero` without killing the REPL. TestException 13/13 pass.
+- **Remaining limitation:** `throw('Compiler')` is a TempleOS system exception that appears to be intercepted specially; it does not produce an `EXCEPT:` response. All other exception codes (including 8-char custom codes like `'TestCode'` and `'ABCDEFGH'`) work correctly.
+
+### FINDING: 'Compiler' exception code is intercepted by TempleOS
 - **Status:** Confirmed (2026-02-22)
-- **Detail:** Division by zero *inside a called HolyC function* (`r = x / y;` in `TestIntDivZero()`) kills SerReplExe but leaves the OS alive. The exception propagates out of the function call and bypasses SerReplExe's execution context.
-- **Contrast:** Inline code run directly via ExeFile may be wrapped in an implicit try/catch that catches exceptions at that scope. Exceptions originating from within a called function that was compiled into a separate include can escape.
-- **Impact:** Any exception in test code kills the REPL. Must reload SerReplExe after such failures.
-- **Next step:** Investigate whether wrapping ExeFile in a try/catch in SerReplExe would catch these exceptions.
+- **Detail:** `throw('Compiler')` from user code does not produce `EXCEPT:Compiler` from SerReplExe — only `OK` is returned. 8-char custom exception codes (`'TestCode'`, `'ABCDEFGH'`) work correctly. This suggests TempleOS intercepts the 'Compiler' exception code at the system level before it reaches SerReplExe's catch block, or it handles it through a different dispatch path.
+- **Impact:** Low — 'Compiler' is a real compiler error thrown only during compilation failures. User code should not intentionally throw this code.
 
 ---
 

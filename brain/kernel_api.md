@@ -92,6 +92,7 @@ Verified functions from source tree (`brain/real-temple-tree/`).
 - **Sign extension when loading to I64**: `I8 x = -1; I64 r = x;` → r = -1 (sign-extended). `U8 x = 0xFF; I64 r = x;` → r = 255 (zero-extended).
 - **Typed local arrays work**: `U16 arr[4]; I64 arr2[2];` — valid stack declarations, correct byte layout.
 - **Postfix cast `p(Type *)` can be unreliable for pointer variables** — use typed local arrays or struct members instead to avoid cast issues.
+- **Global variables are NOT zero-initialized** — an uninitialized global holds whatever value is in memory at startup (garbage). Always initialize explicitly: `I64 g_counter = 0;`. Exception: `CAlloc` for heap structs still zero-fills.
 
 ## Exception Handling
 

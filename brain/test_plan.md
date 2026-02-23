@@ -51,7 +51,7 @@ Update this file as tests are written and results are confirmed.
 
 | Test File | Area | Status | Notes |
 |-----------|------|--------|-------|
-| TestGlobals | Global variable persistence, init behavior | ⏳ | |
+| TestGlobals | Global variable persistence, init behavior | ✅ | 11/11 pass — globals NOT zero-initialized by default; persist correctly across calls |
 | TestFmtSpec | StrPrint %X, %b, width/padding specifiers | ⏳ | |
 | TestFnPtr | HolyC function pointers, callbacks | ⏳ | |
 

@@ -60,17 +60,20 @@ U0 TestIntDiv() {
   StrPrint(line, "mod_9_3\t%s\t%d\n", s, r);
   CatPrint(out, "%s", line);
 
-  // --- negative modulo ---
+  // --- negative modulo: sign follows dividend (C truncation-toward-zero) ---
   r = -7 % 3;
-  StrPrint(line, "mod_neg7_3\tOBS\t%d\n", r);
+  if (r == -1) s = "PASS"; else s = "FAIL";
+  StrPrint(line, "mod_neg7_3\t%s\t%d\n", s, r);
   CatPrint(out, "%s", line);
 
   r = 7 % -3;
-  StrPrint(line, "mod_7_neg3\tOBS\t%d\n", r);
+  if (r == 1) s = "PASS"; else s = "FAIL";
+  StrPrint(line, "mod_7_neg3\t%s\t%d\n", s, r);
   CatPrint(out, "%s", line);
 
   r = -7 % -3;
-  StrPrint(line, "mod_neg7_neg3\tOBS\t%d\n", r);
+  if (r == -1) s = "PASS"; else s = "FAIL";
+  StrPrint(line, "mod_neg7_neg3\t%s\t%d\n", s, r);
   CatPrint(out, "%s", line);
 
   // --- I64_MAX / I64_MAX ---

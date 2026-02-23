@@ -69,6 +69,16 @@ Verified functions from source tree (`brain/real-temple-tree/`).
 
 **I64 constants:** `I64_MAX` = `0x7FFFFFFFFFFFFFFF`, `I64_MIN` = `-0x8000000000000000` (defined in KernelA.HH)
 
+**Integer division truncates toward zero** (C standard): `-7 / 2 = -3`, `7 / -2 = -3`.
+
+**Integer modulo sign follows the dividend** (C truncation-toward-zero): `-7 % 3 = -1`, `7 % -3 = 1`, `-7 % -3 = -1`. The sign of `a % b` always matches the sign of `a`, regardless of `b`. This is the same as C99 and differs from Python's floor-division modulo.
+
+**Integer overflow is silent** — wraps in 2's complement, no exception thrown. `I64_MAX + 1 = I64_MIN`.
+
+**`I64_MIN / -1` does not throw** — the compiler converts division by -1 to a NEG instruction, so no hardware IDIV overflow fault. Result wraps silently to `I64_MIN`.
+
+**Arithmetic right shift** — `>>` on signed I64 is SAR (arithmetic), not SHR (logical). Sign bit is preserved: `-1 >> 63 = -1`, `-8 >> 1 = -4`.
+
 **StrPrint format:** `%d` for I64, `%f` for F64 — do NOT use `%d` on F64 results.
 **`%f` prints 0 decimal places by default** (truncates to integer). Use `%.2f` for 2 decimal places, `%.6f` for 6, etc.
 **MemCmp returns:** -1 when a<b, 0 when equal, 1 when a>b (not arbitrary negative/positive like C's memcmp).

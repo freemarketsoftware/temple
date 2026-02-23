@@ -55,16 +55,18 @@ U0 TestMemUtil() {
   StrPrint(line, "memcmp_equal\t%s\t%d\n", s, r);
   CatPrint(out, "%s", line);
 
-  // --- MemCmp: a < b (p[4]=0x42, q[4]=0x43) ---
+  // --- MemCmp: a < b returns exactly -1 (not arbitrary negative) ---
   q[4] = 0x43;
   r = MemCmp(p, q, 8);
-  StrPrint(line, "memcmp_lt\tOBS\t%d\n", r);
+  if (r == -1) s = "PASS"; else s = "FAIL";
+  StrPrint(line, "memcmp_lt\t%s\t%d\n", s, r);
   CatPrint(out, "%s", line);
 
-  // --- MemCmp: a > b (p[4]=0x42, q[4]=0x41) ---
+  // --- MemCmp: a > b returns exactly 1 (not arbitrary positive) ---
   q[4] = 0x41;
   r = MemCmp(p, q, 8);
-  StrPrint(line, "memcmp_gt\tOBS\t%d\n", r);
+  if (r == 1) s = "PASS"; else s = "FAIL";
+  StrPrint(line, "memcmp_gt\t%s\t%d\n", s, r);
   CatPrint(out, "%s", line);
   Free(p);
   Free(q);

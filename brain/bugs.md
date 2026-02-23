@@ -40,6 +40,13 @@ Active issues, known problems, and notable findings to investigate.
 - **Detail:** After `#include "C:/Home/SerReplExe.HC"` via sendkey, TempleOS needs `Dir;` sent as a second keyboard command for SerReplExe to fully initialize and send REPL_READY over serial. Without `Dir;`, `is_frozen()` will always return False even if SerReplExe compiled successfully.
 - **Workaround:** Rule 6 covers this — always send `Dir;` after the include. See `serial/temple.py freeze()`.
 
+### SerReplExe exception scope: div-by-zero in called function kills REPL
+- **Status:** Confirmed (2026-02-22)
+- **Detail:** Division by zero *inside a called HolyC function* (`r = x / y;` in `TestIntDivZero()`) kills SerReplExe but leaves the OS alive. The exception propagates out of the function call and bypasses SerReplExe's execution context.
+- **Contrast:** Inline code run directly via ExeFile may be wrapped in an implicit try/catch that catches exceptions at that scope. Exceptions originating from within a called function that was compiled into a separate include can escape.
+- **Impact:** Any exception in test code kills the REPL. Must reload SerReplExe after such failures.
+- **Next step:** Investigate whether wrapping ExeFile in a try/catch in SerReplExe would catch these exceptions.
+
 ---
 
 ## Kernel Bugs
@@ -68,6 +75,14 @@ Active issues, known problems, and notable findings to investigate.
 - **Root cause:** TempleOS's allocator likely does not check for heap exhaustion before writing — it probably just bumps a pointer past the end of available memory, causing a hardware page fault in kernel mode.
 - **Impact:** Any code path that allocates unbounded memory (e.g., reading a large file) can crash the OS with no recovery.
 - **Source to investigate:** `Kernel/Mem/MAllocFree.HC`
+
+### BUG: CeilI64 gives wrong result for negative numbers
+- **Status:** Confirmed (2026-02-22)
+- **Severity:** Low — affects negative-number rounding only
+- **Behavior:** `CeilI64(-7, 4)` returns `-8` instead of `-4`. The source adds `to-1` before truncating, but then subtracts `to` again, yielding floor behavior for negative inputs.
+- **Evidence:** `CeilI64(-7, 4)` = -8. Expected = -4 (ceil toward +inf).
+- **Root cause:** `Kernel/KMathB.HC` — the else branch `num+=to-1; return num-num%to-to;` is equivalent to FloorI64 for negative numbers.
+- **Workaround:** For negative inputs, use `-(FloorI64(-num, to))` or compute manually.
 
 ---
 
@@ -99,6 +114,13 @@ Active issues, known problems, and notable findings to investigate.
 - **Status:** Confirmed (2026-02-22)
 - **Detail:** `p != 0 ? "PASS" : "FAIL"` causes a silent exception in HolyC compiled files. Integer ternary (`1 ? 42 : 0`) also fails in exec_str context. Root cause unknown — may be related to `?` being a help operator in TempleOS's interactive mode interfering with compilation.
 - **Workaround:** Always use `if/else` to assign a status variable, then use the variable in StrPrint. Never use inline ternary in TempleOS-side test code.
+
+### HolyC local variables do NOT truncate on assignment
+- **Status:** Confirmed (2026-02-22)
+- **Detail:** `U8 x; x = 0x1FF;` — x holds 511, not 255. `U8 x; x = 256;` — x holds 256, not 0. All local variables are 64-bit register values; the declared type (U8/U16/U32/I8/I16/I32) does NOT enforce truncation on assignment.
+- **Contrast:** Struct fields DO use proper byte-width storage (memory layout is respected). For locals, the type affects pointer arithmetic and zero/sign-extension when loading into I64, but not the stored value.
+- **Evidence:** `U8 u8val = 0x1FF;` → `u8val == 511` (not 255). `u8val = 0xFF; r = u8val;` → `r == 255` (zero-extended correctly).
+- **Implication:** Never rely on U8/U16/U32 local variable declarations to clamp values. Use explicit masking if needed: `x = val & 0xFF;`.
 
 ### No StrCat in HolyC — use CatPrint
 - **Status:** Confirmed

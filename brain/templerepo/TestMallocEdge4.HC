@@ -3,6 +3,7 @@ U0 TestMallocEdge4() {
   U8 out[256];
   I64 sz;
 
+  Del("C:/AI/results/TestMallocEdge4.txt");
   StrCpy(out, "name\tstatus\tdetail\n");
 
   sz = MSize(0);

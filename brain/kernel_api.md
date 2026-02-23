@@ -39,8 +39,8 @@ Verified functions from source tree (`brain/real-temple-tree/`).
 | `MemCpy` | `U8 *MemCpy(U8 *dst, U8 *src, I64 cnt)` | Returns dst |
 | `MemCmp` | `I64 MemCmp(U8 *a, U8 *b, I64 cnt)` | 0=equal, 1=a>b, -1=a<b |
 | `MemSet` | `U0 MemSet(U8 *dst, U8 val, I64 cnt)` | Fill with byte |
-| `MemSet_U16` | `U0 MemSet_U16(U8 *dst, U16 val, I64 cnt)` | Fill with 16-bit word |
-| `MemSet_I64` | `U0 MemSet_I64(U8 *dst, I64 val, I64 cnt)` | Fill with 64-bit qword |
+| `MemSetU16` | `U16 *MemSetU16(U16 *dst, I64 val, I64 U16cnt)` | Fill with 16-bit word; cnt = number of U16s |
+| `MemSetI64` | `I64 *MemSetI64(I64 *dst, I64 val, I64 I64cnt)` | Fill with 64-bit qword; cnt = number of I64s |
 
 ---
 
@@ -70,8 +70,18 @@ Verified functions from source tree (`brain/real-temple-tree/`).
 **I64 constants:** `I64_MAX` = `0x7FFFFFFFFFFFFFFF`, `I64_MIN` = `-0x8000000000000000` (defined in KernelA.HH)
 
 **StrPrint format:** `%d` for I64, `%f` for F64 — do NOT use `%d` on F64 results.
+**`%f` prints 0 decimal places by default** (truncates to integer). Use `%.2f` for 2 decimal places, `%.6f` for 6, etc.
+**MemCmp returns:** -1 when a<b, 0 when equal, 1 when a>b (not arbitrary negative/positive like C's memcmp).
 
 ---
+
+## HolyC Type System Notes
+
+- **Local variables are 64-bit** — `U8 x; x = 256;` stores 256, NOT 0. Type declarations do NOT truncate on assignment for locals. Use explicit `& 0xFF` masking if clamping is needed.
+- **Struct fields DO truncate** — memory-layout types (struct members, arrays indexed via pointer) respect byte width.
+- **Sign extension when loading to I64**: `I8 x = -1; I64 r = x;` → r = -1 (sign-extended). `U8 x = 0xFF; I64 r = x;` → r = 255 (zero-extended).
+- **Typed local arrays work**: `U16 arr[4]; I64 arr2[2];` — valid stack declarations, correct byte layout.
+- **Postfix cast `p(Type *)` can be unreliable for pointer variables** — use typed local arrays or struct members instead to avoid cast issues.
 
 ## HolyC Notes
 

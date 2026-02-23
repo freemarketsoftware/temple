@@ -11,6 +11,7 @@ U0 TestStrings() {
   I64 r;
   U8 *p;
 
+  Del("C:/AI/results/TestStrings.txt");
   StrCpy(out, "name\tstatus\tdetail\n");
 
   // --- StrLen ---

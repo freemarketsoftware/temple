@@ -13,6 +13,7 @@ U0 TestFileIO() {
   I64 r, sz, i;
   U8 wbuf[1024];
 
+  Del("C:/AI/results/TestFileIO.txt");
   StrCpy(out, "name\tstatus\tdetail\n");
 
   // --- basic roundtrip ---

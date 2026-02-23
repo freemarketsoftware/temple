@@ -4,6 +4,7 @@ U0 TestMallocEdge5() {
   U8 *p;
   U8 *q;
 
+  Del("C:/AI/results/TestMallocEdge5.txt");
   StrCpy(out, "name\tstatus\tdetail\n");
 
   p = MAlloc(64);

@@ -9,6 +9,7 @@ U0 TestMalloc() {
   U8 *s;
   I64 i, sz;
 
+  Del("C:/AI/results/TestMalloc.txt");
   StrCpy(out, "name\tstatus\tdetail\n");
 
   // alloc 1 byte returns non-null

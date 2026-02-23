@@ -6,6 +6,7 @@ U0 TestMallocEdge6() {
   U8 *p1, *p2;
   I64 sz;
 
+  Del("C:/AI/results/TestMallocEdge6.txt");
   StrCpy(out, "name\tstatus\tdetail\n");
 
   // Alloc, free, alloc same size — same address returned?

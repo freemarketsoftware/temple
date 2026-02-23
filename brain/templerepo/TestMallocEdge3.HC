@@ -3,6 +3,7 @@ U0 TestMallocEdge3() {
   U8 out[256];
   U8 *p;
 
+  Del("C:/AI/results/TestMallocEdge3.txt");
   StrCpy(out, "name\tstatus\tdetail\n");
 
   p = MAlloc(64);

@@ -9,6 +9,7 @@ U0 TestIntMath() {
   U8 *s;
   I64 r;
 
+  Del("C:/AI/results/TestIntMath.txt");
   StrCpy(out, "name\tstatus\tdetail\n");
 
   // --- AbsI64 ---

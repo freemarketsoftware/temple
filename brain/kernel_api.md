@@ -83,6 +83,42 @@ Verified functions from source tree (`brain/real-temple-tree/`).
 - **Typed local arrays work**: `U16 arr[4]; I64 arr2[2];` — valid stack declarations, correct byte layout.
 - **Postfix cast `p(Type *)` can be unreliable for pointer variables** — use typed local arrays or struct members instead to avoid cast issues.
 
+## Exception Handling
+
+HolyC exceptions use `try`/`catch`/`throw` with no parameters on the catch block.
+
+```c
+try {
+  throw('MyCode');       // I64 code, up to 8 ASCII chars packed
+} catch {
+  // Fs->except_ch holds the thrown code
+  if (Fs->except_ch == 'MyCode') { ... }
+  Fs->catch_except = TRUE;  // MUST set this or exception re-propagates
+}
+```
+
+| Concept | Detail |
+|---------|--------|
+| `throw(code)` | Raises exception with I64 code. Multi-char literal: `throw('DivZero')` |
+| `Fs->except_ch` | I64 exception code, readable inside catch block |
+| `Fs->catch_except = TRUE` | **Required** in catch block — omitting this re-propagates the exception to the outer scope |
+| Hardware div-by-zero | Throws `'DivZero'` automatically |
+| Uncaught exception | Calls `Panic()` → OS death |
+| Cross-function propagation | Exceptions propagate from called functions to the caller's `try/catch` — confirmed |
+
+**Special exception codes:** `'Compiler'` is intercepted by the OS exception system and does not surface through user `try/catch` in the normal way. All other codes (including 8-char custom codes) work normally.
+
+**Printing the exception code as a string:**
+```c
+U8 ecode[9]; I64 ec;
+ec = Fs->except_ch;
+MemCpy(ecode, &ec, 8);
+ecode[8] = 0;
+// ecode is now a null-terminated string like "DivZero"
+```
+
+---
+
 ## HolyC Notes
 
 - **Ternary `?:`** is unreliable with pointer/comparison conditions — use `if/else` to assign a `U8 *status` variable, then use `status` in `StrPrint`. Integer ternary may also fail. Safest: always use `if/else`.

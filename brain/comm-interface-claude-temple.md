@@ -182,12 +182,10 @@ See `brain/file-ban.md` for files excluded from `read_file`. These decompress to
 
 | Name | Saved | Contents |
 |------|-------|----------|
-| `snap_backup` | First working serial comms | SerReplExe, SerDir, SerFileRead, SerFileWrite |
-| `snap_proto_v2` | Triple-EOT milestone | SerProto with `\x04\x04\x04` |
-| `snap_cafebabe` | CAFEBABE + validated tree | Full C:/Home+Adam mirror validated |
-| `snap1` | Rolling | Current working state |
+| `snap1` | Rolling — updated after major milestones | Current working state; all C:/Home primitives deployed |
+| `snap_backup` | Permanent fallback | Absolute last resort; overwrite only when explicitly instructed |
 
-**Never overwrite `snap_backup`.**
+**Always `deploy_all.py` after any `loadvm` — disk reverts to snapshot state, C:/Home files are lost.**
 
 ---
 

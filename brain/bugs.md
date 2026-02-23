@@ -215,6 +215,12 @@ Active issues, known problems, and notable findings to investigate.
 - **Workaround:** Call `Now()` + `Date2Struct()` instead. `Date2Struct` works fine from JIT context.
 - **Source:** `Kernel/KDate.HC`
 
+### SerDir.HC: "missing ) at U0" parse error on load
+- **Status:** Confirmed, open
+- **Severity:** Low — cosmetic error, sync_mirror.py loads it and it still functions
+- **Behavior:** When SerDir.HC is included, TempleOS prints `"missing ) at U0"` before executing. The file still compiles and the Dir primitives still work; it's a parse warning not a hard error.
+- **Next step:** Read SerDir.HC source and identify the offending line; likely a forward declaration or function signature that the REPL's JIT chokes on.
+
 ### StrPrint `%f` shows no decimal places by default
 - **Status:** Confirmed (2026-02-23)
 - **Severity:** Low — only affects format string output

@@ -87,4 +87,4 @@ Each should run standalone (not via TestRunner) until stability is confirmed.
 | Test File | Area | Status | Notes |
 |-----------|------|--------|-------|
 | TestTasks | Spawn, Kill, DeathWait, task data passing | ⏳ | Run standalone — a bad task can panic the runner |
-| TestPCI | PCI bus enumeration via InU32(0xCF8/0xCFC) — detect e1000 NIC | ⏳ | First step toward HTTP stack; read-only probe, low risk |
+| TestPCI | PCI bus enumeration via PCIReadU16/U32/U8, PCIClassFind — detect e1000 NIC | ✅ | 10/10 pass — TempleOS uses BIOS-based PCIReadXX not raw port I/O; e1000 at bus=0,dev=3,func=0 (8086:100E); standalone only |

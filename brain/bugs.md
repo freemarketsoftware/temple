@@ -6,15 +6,10 @@ Active issues, known problems, and notable findings to investigate.
 
 ## Primitives
 
-### SerSymList - not deployed after snapshot load
-- **Status:** Missing on TempleOS filesystem
-- **Cause:** `loadvm snap_pre_pipeline` (or any snapshot load) reverts the qcow2 disk to the snapshot's state. Files deployed to TempleOS after the snapshot was taken are LOST. SerSymList.HC was deployed after snap_pre_pipeline was saved.
-- **Fix:** Redeploy all brain/templerepo/ files via `serial/deploy_all.py` after any loadvm.
-
-### SerMemInfo - not deployed after snapshot load
-- **Status:** Missing on TempleOS filesystem
-- **Cause:** Same as above — deployed after snap_pre_pipeline, lost on loadvm.
-- **Fix:** Same redeployment as above.
+### Snapshot load reverts TempleOS filesystem
+- **Status:** Resolved (2026-02-23) — `serial/sync_mirror.py` + saved snapshots cover this
+- **Cause:** `loadvm` reverts the qcow2 disk to the snapshot state. Any files deployed to TempleOS after the snapshot was taken are lost.
+- **Fix:** Always run `sync_mirror.py` before saving a snapshot to capture current state. After any `loadvm`, re-deploy changed files if needed. All primitives are included in snap1 as of 2026-02-23.
 
 ---
 
@@ -117,6 +112,14 @@ Active issues, known problems, and notable findings to investigate.
 ### MAlloc reuses freed addresses immediately
 - **Status:** Confirmed (2026-02-22)
 - **Detail:** `p1 = MAlloc(64); Free(p1); p2 = MAlloc(64);` — `p1 == p2`. The allocator returns the exact same address on the next same-size allocation. Combined with the use-after-free bug, this means a stale pointer write directly corrupts the next allocation's content.
+
+### Del(path) does not delete directories by default
+- **Status:** Confirmed (2026-02-23)
+- **Severity:** Medium — silent no-op, no error reported
+- **Behavior:** `Del("C:/path/dir")` silently does nothing when the target is a directory. The directory remains on disk. No error, no exception.
+- **Root cause:** `Del()` signature is `I64 Del(U8 *mask, Bool make_mask=FALSE, Bool del_dir=FALSE, Bool print_msg=TRUE)`. The `del_dir` parameter defaults to `FALSE`, so directory deletion is opt-in.
+- **Fix:** Use `Del("C:/path/dir", FALSE, TRUE)` to delete directories.
+- **Evidence:** `Kernel/BlkDev/DskCopy.HC` — confirmed in source. TestDirOps del_dir test: FAIL with `Del(path)`, PASS with `Del(path, FALSE, TRUE)`.
 
 ### FileWrite returns a disk sector index, not byte count
 - **Status:** Confirmed (2026-02-22)

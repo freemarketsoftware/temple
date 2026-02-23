@@ -49,7 +49,7 @@ catprint_append	PASS	0
 catprint_from_empty	PASS	0
 # TestFileIO
 basic_roundtrip	PASS	5
-filewrite_retval_nonzero	PASS	24057
+filewrite_retval_nonzero	PASS	24207
 fileread_size	PASS	3
 overwrite	PASS	6
 large_1kb_size	PASS	1024
@@ -255,17 +255,17 @@ fp_as_arg_double	PASS	12
 fp_as_arg_square	PASS	36
 fp_call_no_deref	PASS	20
 # TestDateTime
-now_nonzero	PASS	740034/3725983549
+now_nonzero	PASS	740034/3809993905
 year_range	PASS	2026
 mon_range	PASS	2
 day_range	PASS	23
-hour_range	PASS	20
-min_range	PASS	49
-sec_range	PASS	14
+hour_range	PASS	21
+min_range	PASS	17
+sec_range	PASS	24
 dow_range	PASS	1
-timer_monotonic	PASS	158384861447->158384861455
-timer_advances	PASS	delta=90932
-ts_positive	PASS	133578
+timer_monotonic	FAIL	159018355704->159018354564
+timer_advances	PASS	delta=64757
+ts_positive	PASS	134115
 ts_advances	PASS	delta=0
 now_monotonic	PASS
 year_stable	PASS	2026
@@ -280,3 +280,19 @@ write_nested	PASS
 del_nested_file	PASS
 del_subdir	PASS
 del_dir	PASS
+# TestF64Edge
+inf_bits	PASS	7FF0000000000000
+underflow_zero	PASS
+neg_inf_bits	PASS	FFF0000000000000
+inf_gt_large	PASS
+inf_eq_inf	PASS
+inf_plus_one	PASS
+inf_times_two	PASS
+overflow_inf	PASS
+fdiv_zero	PASS	7FF0000000000000
+zero_div_zero_nan	PASS	FFF8000000000000
+sqrt_neg_nan	PASS	FFF8000000000000
+toi64_inf	OBS	-9223372036854775808
+nan_eq_nan	OBS	1
+nan_lt_one	OBS	1
+fp_precision_80bit	OBS	1

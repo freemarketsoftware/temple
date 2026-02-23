@@ -30,6 +30,7 @@
 #include "C:/AI/tests/TestFnPtr.HC"
 #include "C:/AI/tests/TestDateTime.HC"
 #include "C:/AI/tests/TestDirOps.HC"
+#include "C:/AI/tests/TestF64Edge.HC"
 
 U0 TestRunner() {
   U8 *out = MAlloc(131072);
@@ -58,6 +59,7 @@ U0 TestRunner() {
   CatPrint(out, "# TestFnPtr\n");       TestFnPtr(out);
   CatPrint(out, "# TestDateTime\n");   TestDateTime(out);
   CatPrint(out, "# TestDirOps\n");    TestDirOps(out);
+  CatPrint(out, "# TestF64Edge\n");   TestF64Edge(out);
 
   FileWrite("C:/AI/results/TestResults.txt", out, StrLen(out));
   Free(out);

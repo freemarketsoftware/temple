@@ -124,6 +124,16 @@ Active issues, known problems, and notable findings to investigate.
 - **Evidence:** Called 4 times with sizes 3, 3, 5, 1 — returned 23129, 23131, 23133, 23135 (always +2).
 - **Implication:** Do not use FileWrite's return value to verify write success. Use FileRead + MemCmp instead.
 
+### BUG: F64 local variables inside compiled HolyC functions crash TempleOS
+- **Status:** Confirmed (2026-02-23)
+- **Severity:** High — silent OS panic, no exception thrown
+- **Behavior:** Declaring any `F64` local variable inside a compiled function body (e.g. `F64 x = 1.5;`) causes an immediate OS panic when the function is called. The serial socket goes silent, the REPL dies, and QEMU must be restarted.
+- **Also affected:** F64 operations assigned to local variables of any type inside a function.
+- **What DOES work:** Declare all F64 state as global variables (`F64 g_val = 0.0;`), then assign and use them from inside functions.
+- **Root cause hypothesis:** Same JIT bug as typed function pointer locals — the HolyC compiler does not correctly allocate x87 FPU stack space for F64 locals within a function prologue/epilogue.
+- **Workaround:** Move all F64 variables to global scope. All existing tests (TestF64Edge, TestMath2) use this pattern.
+- **Evidence:** TestF64Edge — version with local F64 vars panicked immediately on first call; rewrite using globals: 15/15 pass.
+
 ### BUG: Typed function pointer local variables silently break HolyC functions
 - **Status:** Confirmed (2026-02-23)
 - **Severity:** Medium — silent failure, no error reported
@@ -144,6 +154,16 @@ Active issues, known problems, and notable findings to investigate.
 - **Contrast:** Struct fields DO use proper byte-width storage (memory layout is respected). For locals, the type affects pointer arithmetic and zero/sign-extension when loading into I64, but not the stored value.
 - **Evidence:** `U8 u8val = 0x1FF;` → `u8val == 511` (not 255). `u8val = 0xFF; r = u8val;` → `r == 255` (zero-extended correctly).
 - **Implication:** Never rely on U8/U16/U32 local variable declarations to clamp values. Use explicit masking if needed: `x = val & 0xFF;`.
+
+### F64 NaN comparisons are non-IEEE (x87 behavior)
+- **Status:** Confirmed (2026-02-23)
+- **Detail:** `NaN == NaN` → `1` (TRUE). `NaN < 1.0` → `1` (TRUE). Per IEEE 754, all NaN comparisons should return false. TempleOS x87 FPU comparisons treat NaN as a normal bit pattern rather than using the IEEE unordered result.
+- **Impact:** Code checking `if (x == x)` as an IsNaN test will not work — it returns true even for NaN.
+
+### 0.1 + 0.2 == 0.3 in TempleOS (x87 80-bit extended precision)
+- **Status:** Confirmed (2026-02-23)
+- **Detail:** `0.1 + 0.2 == 0.3` evaluates to TRUE in TempleOS. In standard IEEE 754 double precision (C, Python), this is FALSE due to rounding. TempleOS uses the x87 FPU in 80-bit extended precision mode, which provides enough extra precision that the accumulated rounding error happens to cancel out for this specific case.
+- **Impact:** Floating-point code ported from other languages should not assume IEEE 754 double precision rounding behavior.
 
 ### No StrCat in HolyC — use CatPrint
 - **Status:** Confirmed

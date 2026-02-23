@@ -79,8 +79,32 @@ Verified functions from source tree (`brain/real-temple-tree/`).
 
 **Arithmetic right shift** — `>>` on signed I64 is SAR (arithmetic), not SHR (logical). Sign bit is preserved: `-1 >> 63 = -1`, `-8 >> 1 = -4`.
 
-**StrPrint format:** `%d` for I64, `%f` for F64 — do NOT use `%d` on F64 results.
+**StrPrint format specifiers (confirmed):**
+
+| Specifier | Output | Notes |
+|-----------|--------|-------|
+| `%d` | Signed decimal | Standard |
+| `%u` | Unsigned decimal | `-1` → `18446744073709551615` |
+| `%x` | Lowercase hex | `255` → `ff` |
+| `%X` | Uppercase hex | `255` → `FF` |
+| `%b` | Binary | `5` → `101`, `255` → `11111111` |
+| `%f` | Float, 0 decimal places | `3.14` → `3` |
+| `%.Nf` | Float, N decimal places | `%.2f` of `3.14` → `3.14` |
+| `%e` | Scientific notation | `12345.0` → `1.23450000e4` (no `+`, no leading 0 in exp) |
+| `%g` | General float | Behaves unexpectedly — avoid |
+| `%n` | Engineering notation | Same as `%e` without args; SI prefixes need extra setup |
+| `%c` | Single character | `'A'` → `A` |
+| `%s` | String | Standard |
+| `%p` | Pointer | Printed as uppercase hex, no `0x` prefix |
+| `%%` | Literal `%` | Standard |
+| `%Nd` | Right-align in width N | `%5d` of `42` → `   42` |
+| `%0Nd` | Zero-pad to width N | `%05d` of `42` → `00042` |
+| `%-Nd` | Left-align (broken) | **Ignored** — behaves same as `%Nd`, still right-aligns |
+| `%,d` | Thousands separator | `1234567` → `1,234,567` |
+| `%,X` | Hex with separator | `0xDEADBEEF` → `DEAD,BEEF` (groups of 4) |
+
 **`%f` prints 0 decimal places by default** (truncates to integer). Use `%.2f` for 2 decimal places, `%.6f` for 6, etc.
+**`%-N` left-justify flag is non-functional** — always right-aligns. Use manual padding if left-alignment is needed.
 **MemCmp returns:** -1 when a<b, 0 when equal, 1 when a>b (not arbitrary negative/positive like C's memcmp).
 
 ---

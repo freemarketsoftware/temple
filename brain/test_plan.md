@@ -97,7 +97,7 @@ Deferred earlier; now relevant as prerequisites for pointer-heavy driver work.
 
 | Test File | Area | Status | Notes |
 |-----------|------|--------|-------|
-| TestPointers | Pointer arithmetic, address-of, casting, struct ptr access | ⏳ | Was ⏸; needed for descriptor ring management in e1000 driver |
+| TestPointers | Pointer arithmetic, address-of, casting, struct ptr, double ptr, buf_cast | ✅ | 9/9 pass — all pointer patterns work; buf_cast (typed ptr at offset) confirmed for packet parsing |
 | TestStrConv | StrToI64, I64ToStr, hex string parsing, number formatting | ⏳ | Needed for packet field parsing and MAC/IP address formatting |
 
 ---

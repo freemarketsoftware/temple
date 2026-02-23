@@ -49,7 +49,7 @@ catprint_append	PASS	0
 catprint_from_empty	PASS	0
 # TestFileIO
 basic_roundtrip	PASS	5
-filewrite_retval_nonzero	PASS	24511
+filewrite_retval_nonzero	PASS	25179
 fileread_size	PASS	3
 overwrite	PASS	6
 large_1kb_size	PASS	1024
@@ -209,7 +209,7 @@ global_persist	PASS	3
 global_read_via_fn	PASS	3
 global_shared_state	PASS	1
 global_direct_write	PASS	99
-global_uninit	OBS	28147497674487369
+global_uninit	OBS	31525197395015241
 global_array	PASS	10 20 30 40
 global_struct	PASS	77 88
 global_string	PASS	hello
@@ -255,17 +255,17 @@ fp_as_arg_double	PASS	12
 fp_as_arg_square	PASS	36
 fp_call_no_deref	PASS	20
 # TestDateTime
-now_nonzero	PASS	740034/3948536426
+now_nonzero	PASS	740034/4096523899
 year_range	PASS	2026
 mon_range	PASS	2
 day_range	PASS	23
 hour_range	PASS	22
-min_range	PASS	3
-sec_range	PASS	51
+min_range	PASS	53
+sec_range	PASS	28
 dow_range	PASS	1
-timer_monotonic	PASS	162318572924->162318572931
-timer_advances	PASS	delta=68624
-ts_positive	PASS	136900
+timer_monotonic	PASS	165856059939->165856059949
+timer_advances	PASS	delta=88952
+ts_positive	PASS	139873
 ts_advances	PASS	delta=0
 now_monotonic	PASS
 year_stable	PASS	2026
@@ -327,3 +327,13 @@ eu32_roundtrip	PASS
 ei64_swap	PASS	807060504030201
 ei64_0001	PASS	100000000000000
 ei64_roundtrip	PASS
+# TestPointers
+addr_deref	PASS	*p=42 same=1
+ptr_write	PASS	x=99
+ptr_arith	PASS	p1=20 diff=3 pp=20
+ptr_cast	PASS	b0=8 b7=1
+struct_ptr	PASS	x=100 y=7 sz=16
+ptr_cmp	PASS
+heap_ptr	PASS	100 200 300
+double_ptr	PASS	x=99 swapped=77
+buf_cast	PASS	u16=504 u32=B0A0908

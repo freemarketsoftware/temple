@@ -1,0 +1,11 @@
+suite	name	status	detail
+# TestPointers
+addr_deref	PASS	*p=42 same=1
+ptr_write	PASS	x=99
+ptr_arith	PASS	p1=20 diff=3 pp=20
+ptr_cast	PASS	b0=8 b7=1
+struct_ptr	PASS	x=100 y=7 sz=16
+ptr_cmp	PASS
+heap_ptr	PASS	100 200 300
+double_ptr	PASS	x=99 swapped=77
+buf_cast	PASS	u16=504 u32=B0A0908

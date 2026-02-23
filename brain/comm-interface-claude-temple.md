@@ -76,6 +76,22 @@ def send_cmd(s, cmd, timeout=20):
 
 ## Primitives
 
+All primitives loaded into the REPL via `#include "C:/Home/SerXxx.HC";`. Status: all seven are implemented and deployed.
+
+| Primitive     | File                     | Python method        |
+|---------------|--------------------------|----------------------|
+| SerFileRead   | C:/Home/SerFileRead.HC   | `t.read_file()`      |
+| SerDir        | C:/Home/SerDir.HC        | `t.list_dir()`       |
+| SerFileWrite  | C:/Home/SerFileWrite.HC  | `t.write_file()`     |
+| SerFileExists | C:/Home/SerFileExists.HC | `t.file_exists()`    |
+| SerMkDir      | C:/Home/SerMkDir.HC      | `t.mkdir()`          |
+| SerExecI64    | C:/Home/SerExecI64.HC    | `t.exec_i64()`       |
+| SerExecStr    | C:/Home/SerExecStr.HC    | `t.exec_str()`       |
+
+`t.is_frozen()` detects if SerReplExe is active by sending a `;` no-op and checking for a CAFEBABE response.
+
+---
+
 ### SerDir
 **File:** `C:/Home/SerDir.HC`
 **Python:** `t.list_dir(pattern)` → list of paths
@@ -166,6 +182,18 @@ SerMkDir("C:/Home/MyDir");
 **Notes:**
 - Silent success/fail — TempleOS `DirMk` does not return a status
 - Verify creation with `t.list_dir(parent + '/*')` — `file_exists` is unreliable for dirs (returns True due to FileRead reading dir entries)
+
+---
+
+### SerExecStr — Critical Design Note
+
+`GStrReset()` and `GStrAdd()` do **not** emit CAFEBABE. Calling them as separate `send_cmd` calls causes drain desync (10-second timeout per call waiting for a CAFEBABE that never comes). Always combine into one command:
+
+```
+GStrReset();{user code}SerSendStr();
+```
+
+Python's `t.exec_str(code)` does this automatically. The combined command must fit in SerReplExe's 256-byte buffer.
 
 ---
 

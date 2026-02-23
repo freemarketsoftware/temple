@@ -161,3 +161,23 @@ ecode[8] = 0;
 - Default arguments supported: `MAlloc(64)` uses `mem_task=NULL`
 - 255-byte line limit in `exec_str` (lexer hard limit); use `run_hc()` for longer code
 - No `StrCat`, no `Abs` — see table above for correct names
+
+---
+
+## Functions That Do NOT Exist
+
+Confirmed undefined in TempleOS — do not use these.
+
+| Name | What it looks like | Correct alternative |
+|------|--------------------|---------------------|
+| `Eval(str)` | Execute arbitrary HolyC string | Use `SerReplExe` / `ExeFile` workaround |
+| `ExeStr(str)` | Execute arbitrary HolyC string | Use `SerReplExe` / `ExeFile` workaround |
+| `MkDir(path)` / `MakeDir(path)` | Create directory | `DirMk(path)` |
+| `DirFirst(pattern)` | Iterate directory entries | `FilesFind(mask)` — walk returned linked list |
+| `DirNext(entry)` / `FilesNext(entry)` | Next directory entry | Walk `FilesFind` linked list via pointer |
+| `FOpen(path)` | Open file handle (C-style) | `FileRead` / `FileWrite` for whole-file I/O |
+| `FPrint(handle, fmt)` | Print to file handle | `StrPrint(buf, fmt, ...)` + `FileWrite` |
+| `Cls` | Clear terminal | `DocClear(DocPut)` |
+| `(Type)value` | C-style prefix cast | TempleOS postfix cast: `value(Type)` |
+| `!expr` | Logical NOT | `\!expr` (escape required) |
+| `!=` | Not-equal operator | `\!=` (escape required) |

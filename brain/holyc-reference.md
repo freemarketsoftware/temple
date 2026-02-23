@@ -256,3 +256,41 @@ sqrt2 = 1.41421...    eps   = machine epsilon
 - `FileRead()` auto-decompresses `.HC.Z` files — output is readable HolyC source
 - All memory is in a single flat address space — pointer arithmetic works everywhere
 - `StrLen`, `StrCmp`, `StrCpy` are confirmed available in REPL context (used by SerReplExe)
+
+---
+
+## Quick Syntax Reference
+
+### Types
+`U0` (void), `U8`, `U16`, `U32`, `U64` (unsigned), `I8`, `I16`, `I32`, `I64` (signed), `F64` (float), `Bool` (0/1)
+
+### Function definition
+```c
+U0 FuncName(U8 *arg1, I64 arg2) { ... }
+```
+Omitting return type defaults to `U0`. Pointers use `*` as in C.
+
+### Control flow
+`if`, `else`, `while`, `for`, `switch/case/break` — same as C.
+
+### Operators — gotchas
+- `!` **must be escaped as `\!`** — e.g. `while(\!UartTxReady());` and `\!=` for not-equal. Unescaped `!` is a compile error.
+- Typecast is **postfix**: `value(Type)` not `(Type)value`
+- Ternary `?:` is unreliable — use `if/else` instead (see bugs.md)
+
+### REPL execution
+- `;;` after a statement executes it immediately in the interactive REPL
+- `#include "C:/path/file.HC"` — compile and run a file
+
+### Ed (file editor)
+- `Ed("C:/Home/file.HC");` — **semicolon required** for blocking mode. Without it Ed opens non-blocking in a side panel and sendkey input goes to the wrong window.
+
+### Printing
+- `"%d\n", value;` — direct printf-style output (no wrapper needed in interactive mode)
+- `"literal string\n";` — prints directly to screen
+- For serial output: use `StrPrint(buf, fmt, ...)` then `SerSendStr()` or `FileWrite()`
+
+### Misc
+- No header guards, no namespaces, no templates
+- File paths: `C:/` prefix, forward slashes, home dir is `C:/Home/`
+- `Bool` returns are `0` or `1`; any nonzero is truthy

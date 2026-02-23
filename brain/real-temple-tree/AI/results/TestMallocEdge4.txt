@@ -1,0 +1,2 @@
+name	status	detail
+msize_null	OBS	0

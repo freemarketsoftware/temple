@@ -1,0 +1,12 @@
+name	status	detail
+to_upper	PASS	HELLO
+to_lower	PASS	hello
+rem_leading	PASS	|hello|
+rem_trailing	PASS	|hello|
+rem_spaces	PASS	|hello|
+single_space	PASS	|a b|
+strfind_found	PASS	
+strfind_notfound	PASS	
+strfind_nocase	PASS	
+strimatch_found	PASS	
+strimatch_notfound	PASS	

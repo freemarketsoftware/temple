@@ -1,0 +1,7 @@
+name	status	detail
+calloc_zero	PASS	64bytes
+memset_u8	PASS	0xAB
+memcpy_basic	PASS	16bytes
+memcmp_equal	PASS	0
+memcmp_lt	PASS	-1
+memcmp_gt	PASS	1

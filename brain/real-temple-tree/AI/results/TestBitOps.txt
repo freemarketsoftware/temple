@@ -1,0 +1,16 @@
+name	status	detail
+bit_and	PASS	15
+bit_or	PASS	255
+bit_xor	PASS	240
+bit_not_0	PASS	-1
+shl_1_4	PASS	16
+shr_0x80_3	PASS	16
+sar_neg8_1	OBS	-4
+bt_set	PASS	1
+bt_clear	PASS	0
+bts_ret_old	PASS	0
+bts_val_after	PASS	8
+btr_ret_old	PASS	1
+btr_val_after	PASS	251
+bsf_0x18	PASS	3
+bsr_0x18	PASS	4

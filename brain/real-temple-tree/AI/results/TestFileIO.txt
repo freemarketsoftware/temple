@@ -1,0 +1,9 @@
+name	status	detail
+basic_roundtrip	PASS	5
+filewrite_retval_nonzero	PASS	23248
+fileread_size	PASS	3
+overwrite	PASS	6
+large_1kb_size	PASS	1024
+large_1kb_content	PASS	1024
+binary_255_bytes	PASS	255
+whitespace_chars	PASS	8

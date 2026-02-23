@@ -1,0 +1,15 @@
+name	status	detail
+div_7_2	PASS	3
+div_8_2	PASS	4
+div_1_2	PASS	0
+div_neg7_2	PASS	-3
+div_neg8_2	PASS	-4
+div_7_neg2	PASS	-3
+div_neg7_neg2	PASS	3
+mod_7_3	PASS	1
+mod_9_3	PASS	0
+mod_neg7_3	PASS	-1
+mod_7_neg3	PASS	1
+mod_neg7_neg3	PASS	-1
+div_i64max_self	PASS	1
+mod_i64max_2	PASS	1

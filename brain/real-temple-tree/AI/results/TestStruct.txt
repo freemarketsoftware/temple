@@ -1,0 +1,16 @@
+name	status	detail
+basic_field_dot	PASS	42 99
+ptr_field_arrow	PASS	7
+sizeof_simple	PASS	16
+offset_first	PASS	0
+offset_second	PASS	8
+nested_access	PASS	2 3
+sizeof_nested	PASS	32
+array_field	PASS	AB CD
+union_i64_bytes	PASS	8 1
+inheritance_fields	PASS	11 22
+sizeof_child	PASS	16
+inherited_field_offset	PASS	0
+child_field_offset	PASS	8
+u8_field_truncates	PASS	255
+u8_no_spill	PASS	1311768467294899695

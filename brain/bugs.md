@@ -170,3 +170,31 @@ Active issues, known problems, and notable findings to investigate.
 ### StrPrint `%n` engineering notation requires extra args
 - **Status:** Confirmed (2026-02-22)
 - **Detail:** `%n` of `1500.0` produced `1.50000000e3` — same as `%e`, no SI prefix (e.g. no `1.5K`). The SI prefix feature appears to require auxiliary format arguments not yet understood. Do not use `%n` expecting automatic SI prefixes.
+
+---
+
+## DateTime / Clock
+
+### Struct2Date panics when called from JIT-compiled test code
+- **Status:** Confirmed (2026-02-23)
+- **Severity:** Medium — safe to call from kernel-compiled code only
+- **Behavior:** `Struct2Date(&ds)` called from a dynamically-compiled `#include` context (REPL / TestRunner) causes an OS panic. No exception is thrown — the entire TestRunner task dies before `FileWrite` runs, leaving the previous results file untouched.
+- **What works:** `Now()` calls `Struct2Date` internally and works fine. The issue is specific to calling it directly from JIT-compiled code.
+- **Workaround:** Use `Now()` to get the current CDate. Avoid calling `Struct2Date` directly in test/REPL code.
+- **Source:** `Kernel/KDate.HC`
+
+### NowDateTimeStruct panics when called from JIT-compiled test code
+- **Status:** Confirmed (2026-02-23)
+- **Severity:** Medium — same context restriction as Struct2Date
+- **Behavior:** `NowDateTimeStruct(&ds)` called from JIT-compiled code panics the OS, identical crash pattern to Struct2Date. Even with a heap-allocated `CDateStruct` (`MAlloc(64)`) the crash still occurs.
+- **What works:** `Now()` calls `NowDateTimeStruct` internally without issue.
+- **Root cause hypothesis:** Both functions may contain inline assembly or use hardware port I/O (`0x70/0x71` RTC registers) in a way that is incompatible with the JIT-compiled calling context. Alternatively, they may clobber registers that the JIT compiler expects to be preserved.
+- **Workaround:** Call `Now()` + `Date2Struct()` instead. `Date2Struct` works fine from JIT context.
+- **Source:** `Kernel/KDate.HC`
+
+### StrPrint `%f` shows no decimal places by default
+- **Status:** Confirmed (2026-02-23)
+- **Severity:** Low — only affects format string output
+- **Behavior:** `%f` with no precision specifier rounds to integer (`3.14` → `3`, `0.05` → `0`). Use `%.2f`, `%.4f`, etc. to get decimal places.
+- **Evidence:** `ts_advances` delta of ~0.05s printed as `delta=0` with `%f`.
+- **Workaround:** Always specify precision: `%.3f` for millisecond-level F64 values.

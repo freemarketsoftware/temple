@@ -1,0 +1,4 @@
+name	status	detail
+malloc_0_ptr	OBS	nonnull
+malloc_0_msize	OBS	0
+malloc_0_free	OBS	survived

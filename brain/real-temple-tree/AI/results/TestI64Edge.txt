@@ -1,0 +1,16 @@
+name	status	detail
+i64_max_value	PASS	9223372036854775807
+i64_min_value	PASS	-9223372036854775808
+max_plus_one	OBS	-9223372036854775808
+min_minus_one	OBS	9223372036854775807
+max_times_two	OBS	-2
+negate_min	OBS	-9223372036854775808
+abs_i64_min	OBS	-9223372036854775808
+abs_i64_max	PASS	9223372036854775807
+abs_neg1	PASS	1
+sar_neg1_63	PASS	-1
+sar_min_1	OBS	-4611686018427387904
+zero_div_zero	PASS	
+min_div_neg1	OBS	
+max_div_one	PASS	9223372036854775807
+max_times_max	OBS	1

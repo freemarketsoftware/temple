@@ -1,0 +1,13 @@
+name	status	detail
+u8_trunc	FAIL	511
+u8_wrap_256	FAIL	256
+u16_trunc	FAIL	65537
+u32_trunc	FAIL	4294967297
+i8_neg1_to_i64	OBS	-1
+i8_max	PASS	127
+i8_wrap_128	OBS	128
+u8_to_i64	PASS	255
+i16_neg1_to_i64	OBS	-1
+u16_to_i64	PASS	65535
+i32_neg1_to_i64	OBS	-1
+u32_to_i64	PASS	4294967295

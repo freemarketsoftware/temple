@@ -3,6 +3,14 @@
 Tracks what has been tested, what is pending, and what is deferred.
 Update this file as tests are written and results are confirmed.
 
+## Architecture
+
+Tests use a **TestRunner** pattern:
+- Each test is `U0 TestXxx(U8 *out)` — writes TSV rows into a shared buffer
+- `TestRunner.HC` includes all safe tests, calls each with section headers, writes one `C:/AI/results/TestResults.txt`
+- Python: `sudo python3 serial/run_tests.py` deploys + runs everything + prints results
+- **Skip list** (panic the OS — run standalone only): TestIntDivZero, TestMallocEdge2/2b/2c/2d, TestMallocEdge3, Tier 4 tests
+
 ---
 
 ## Status Key
@@ -57,9 +65,26 @@ Update this file as tests are written and results are confirmed.
 
 ---
 
-## Tier 3 — Nice to Have
+## Tier 3 — Kernel Utilities
+
+These round out API coverage and are directly relevant to the networking/hardware roadmap.
 
 | Test File | Area | Status | Notes |
 |-----------|------|--------|-------|
-| TestDirOps | DirMk, nested dirs, Del on dirs | ⏳ | |
-| TestF64Edge | F64 infinity, overflow, special values | ⏳ | |
+| TestDirOps | DirMk, FilesFind, Del on dirs, directory traversal | ✅ | 10/10 pass — Del(path,FALSE,TRUE) required to delete dirs; Del alone is files-only |
+| TestF64Edge | F64 infinity, overflow, NaN, special values | ⏳ | |
+| TestDateTime | Now(), Date2Struct, SysTimerRead, tS, Sleep | ✅ | 14/14 pass — Struct2Date + NowDateTimeStruct panic from JIT context; skipped |
+| TestQSort | QSort on integer and string arrays | ⏳ | |
+| TestKernelUtils | BCnt (count set bits), EndianU16/U32/I64 (byte-swap) | ⏳ | Endian functions needed for network protocol work |
+
+---
+
+## Tier 4 — OS Primitives
+
+Riskier tests — spawned tasks or hardware access could panic the OS.
+Each should run standalone (not via TestRunner) until stability is confirmed.
+
+| Test File | Area | Status | Notes |
+|-----------|------|--------|-------|
+| TestTasks | Spawn, Kill, DeathWait, task data passing | ⏳ | Run standalone — a bad task can panic the runner |
+| TestPCI | PCI bus enumeration via InU32(0xCF8/0xCFC) — detect e1000 NIC | ⏳ | First step toward HTTP stack; read-only probe, low risk |

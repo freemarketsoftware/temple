@@ -1,0 +1,4 @@
+name	status	detail
+memset_u16_val	PASS	4660_4660_4660_4660
+memset_u16_bytes	PASS	52_18
+memset_i64_val	PASS	3735928559_3735928559

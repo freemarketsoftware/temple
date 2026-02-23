@@ -1,0 +1,9 @@
+suite	name	status	detail
+TestTasks	spawn_basic	PASS	99
+TestTasks	spawn_arg	PASS	42
+TestTasks	spawn_neg_arg	PASS	-7
+TestTasks	spawn_two_seq	PASS	1_1
+TestTasks	validate_live	PASS
+TestTasks	validate_null	PASS
+TestTasks	yield_ok	PASS
+TestTasks	kill_ok	PASS

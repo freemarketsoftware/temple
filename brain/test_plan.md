@@ -86,5 +86,5 @@ Each should run standalone (not via TestRunner) until stability is confirmed.
 
 | Test File | Area | Status | Notes |
 |-----------|------|--------|-------|
-| TestTasks | Spawn, Kill, DeathWait, task data passing | ⏳ | Run standalone — a bad task can panic the runner |
+| TestTasks | Spawn, Kill, DeathWait, TaskValidate, Yield, arg passing | ✅ | 8/8 pass — tasks work from REPL context; DeathWait does NOT null the ptr; neg args work; standalone only |
 | TestPCI | PCI bus enumeration via PCIReadU16/U32/U8, PCIClassFind — detect e1000 NIC | ✅ | 10/10 pass — TempleOS uses BIOS-based PCIReadXX not raw port I/O; e1000 at bus=0,dev=3,func=0 (8086:100E); standalone only |

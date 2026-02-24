@@ -216,6 +216,13 @@ Rules that differ from C and apply everywhere, not just specific files.
 - **Detail:** `0.1 + 0.2 == 0.3` evaluates to TRUE in TempleOS. In standard IEEE 754 double precision (C, Python), this is FALSE due to rounding. TempleOS uses the x87 FPU in 80-bit extended precision mode, which provides enough extra precision that the accumulated rounding error happens to cancel out for this specific case.
 - **Impact:** Floating-point code ported from other languages should not assume IEEE 754 double precision rounding behavior.
 
+### `continue` keyword is not supported in HolyC
+- **Status:** Confirmed (2026-02-24)
+- **Severity:** High — causes compilation failure; results file never written (silent)
+- **Behavior:** Using `continue` in a loop body causes a compilation error. The REPL catches the compiler exception and returns `OK`, but the function is never defined and never runs. Identical symptom to other compile-time failures: no results file.
+- **Workaround:** Replace `if (cond) { ...; continue; }` with `if (!cond) { ... }` or restructure as `if/else`. Confirmed: removing `continue` from TestDHCP.HC option-parsing loops fixed the issue → 8/8 pass.
+- **Evidence:** TestContinue.HC (tiny for loop with `continue`) → no results file. TestDHCP.HC with two option-scanning loops using `{ i++; continue; }` → no results file; replace with `if (opt_t != 0) { ... } else { i++; }` → 8/8 pass.
+
 ### BUG: Block-scoped variable declarations inside `{}` panic TempleOS
 - **Status:** Confirmed (2026-02-24)
 - **Severity:** High — silent OS panic, no exception, serial goes silent

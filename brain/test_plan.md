@@ -133,5 +133,5 @@ Pure computation first (no hardware) — packet construction and checksum. Safe 
 
 | Test File | Area | Status | Notes |
 |-----------|------|--------|-------|
-| TestDHCP | DHCP discover/offer/request/ack — get IP from QEMU's built-in DHCP | ⏳ | Requires UDP stack; QEMU provides DHCP on 10.0.2.2 by default |
-| TestHTTPGet | HTTP GET request to host via QEMU user-mode network (10.0.2.2:80) | ⏳ | End goal — requires full stack: e1000 + IP + TCP + HTTP |
+| TestDHCP | DHCP discover/offer/request/ack — get IP from QEMU's built-in DHCP | ✅ | 8/8 pass — Discover→Offer(10.0.2.15)→Request→Ack; xid=12345678 echoed; **BUG: `continue` unsupported in HolyC — use if/else**; standalone only |
+| TestHTTPGet | HTTP GET request to host via QEMU user-mode network (10.0.2.2:8080) | ✅ | 8/8 pass — SYN→SYN-ACK→ACK+GET→HTTP 200; server_isn=0000FA01; ip_total_len=198; rx1 has payload (no pure-ACK from SLiRP); standalone only |

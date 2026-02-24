@@ -106,6 +106,14 @@ Rules that differ from C and apply everywhere, not just specific files.
 - **Why "missing ) at U0":** The JIT parser encounters the type name `U0` (or another type token) in an unexpected position while resolving the implicit conversion — it expects a `)` instead.
 - **Evidence:** SerDir.HC before fix: `UartPrint(d[3])` and `d=d[0]` both generated this warning. After adding explicit casts: silent.
 
+### String literals with `\n` in send_cmd trigger silent 'Compiler' exception
+- **Status:** Confirmed (2026-02-23)
+- **Detail:** `SerPrint("A\nB")` or `StrLen("A\nB")` sent through `send_cmd` returns `b'OK'` (silent failure). Root cause: HolyC compiler reads source from `_r.HC` line by line; when `\n` escape is processed into chr(10) the compiler's source reader terminates the current line mid-string, causing a parse error → 'Compiler' exception → `b'OK'`.
+- **REPL survives:** The try/catch in SerReplExe catches it; subsequent calls work normally.
+- **`throw('Compiler')` is different:** Calling `throw('Compiler')` directly (not via compilation failure) causes a kernel panic — REPL dies, all subsequent calls return `None`.
+- **Workaround:** Use `%c` format with value 10 for embedded newlines: `SerFmt("msg%c", 10, 0)`. Or simply omit newlines in debug strings — `SerPrint("e1000: init ok")` is fine.
+- **Note:** `\r` (chr(13)) in string literals works but is translated to chr(10) by the QEMU serial layer on the Python side.
+
 ### HolyC `...` variadic forwarding throws `UndefExt`
 - **Status:** Confirmed (2026-02-23)
 - **Detail:** Defining `U0 Foo(U8 *fmt, ...)` and then calling `StrPrint(buf, fmt, ...)` inside it throws `EXCEPT:UndefExt` at call time. HolyC does not support forwarding a `...` arg list to another variadic function the way C's `va_list`/`va_start` does.

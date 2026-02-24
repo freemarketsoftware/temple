@@ -43,12 +43,17 @@ Active issues, known problems, and notable findings to investigate.
 ### SerReplExe exception scope: div-by-zero in called function kills REPL
 - **Status:** FIXED (2026-02-22) — SerReplExe wraps `ExeFile` in `try/catch`; exceptions from called functions are caught and reported as `EXCEPT:<name>` over serial.
 - **Fix detail:** SerReplExe.HC uses `try{ExeFile(...);}catch{...StrPrint(ex,"EXCEPT:%s",ecode);}`. Confirmed: `throw('DivZero')` and hardware div-by-zero in called functions both return `EXCEPT:DivZero` without killing the REPL. TestException 13/13 pass.
-- **Remaining limitation:** `throw('Compiler')` is a TempleOS system exception that appears to be intercepted specially; it does not produce an `EXCEPT:` response. All other exception codes (including 8-char custom codes like `'TestCode'` and `'ABCDEFGH'`) work correctly.
+- **Remaining limitation:** `throw('Compiler')` is a TempleOS system exception intercepted at kernel level — it causes a full REPL/kernel panic, not a recoverable exception. See BUG entry below. All other exception codes work correctly.
 
-### FINDING: 'Compiler' exception code is intercepted by TempleOS
-- **Status:** Confirmed (2026-02-22)
-- **Detail:** `throw('Compiler')` from user code does not produce `EXCEPT:Compiler` from SerReplExe — only `OK` is returned. 8-char custom exception codes (`'TestCode'`, `'ABCDEFGH'`) work correctly. This suggests TempleOS intercepts the 'Compiler' exception code at the system level before it reaches SerReplExe's catch block, or it handles it through a different dispatch path.
-- **Impact:** Low — 'Compiler' is a real compiler error thrown only during compilation failures. User code should not intentionally throw this code.
+### BUG: `throw('Compiler')` causes kernel panic — kills REPL permanently
+- **Status:** Confirmed (2026-02-23) — updated from earlier "returns OK" assessment
+- **Severity:** High — no recovery except `loadvm`; all subsequent send_cmd calls return `None`
+- **Behavior:** `throw('Compiler');` sent via `send_cmd` causes the REPL to die immediately. All subsequent socket reads time out (return `None`). The kernel likely panics — the serial connection goes silent.
+- **Contrast with other exceptions:** `throw('DivZero')`, `throw('TestCode')`, hardware div-by-zero etc. are all caught by SerReplExe's `try/catch` and return `EXCEPT:<name>`. `'Compiler'` is intercepted at the kernel level before reaching the catch block.
+- **Also triggered by:** String literals with `\n` in `send_cmd` — the HolyC compiler throws a 'Compiler' exception when it encounters chr(10) mid-string-literal in `_r.HC`. This version returns `b'OK'` and the REPL survives (subtle difference — compilation failure vs. explicit throw).
+- **Earlier finding was wrong:** Previous entry said `throw('Compiler')` returns `b'OK'` — this was observed from an already-dead REPL session where all reads were `None`; the `None` was mistaken for `b'OK'`.
+- **Impact:** Never call `throw('Compiler')` from test or driver code. Do not use `\n` in string literals via send_cmd (use `%c`+10 workaround). Always have a `recover('snap1')` ready.
+- **Evidence:** `throw('Compiler');` via send_cmd → all subsequent calls return `None`; recover() required.
 
 ---
 

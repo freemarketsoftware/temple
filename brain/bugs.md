@@ -11,6 +11,11 @@ Active issues, known problems, and notable findings to investigate.
 - **Cause:** `loadvm` reverts the qcow2 disk to the snapshot state. Any files deployed to TempleOS after the snapshot was taken are lost.
 - **Fix:** Always run `sync_mirror.py` before saving a snapshot to capture current state. After any `loadvm`, re-deploy changed files if needed. All primitives are included in snap1 as of 2026-02-23.
 
+### sync_mirror.py is VM→local only; new primitive files need explicit write_file
+- **Status:** Confirmed (2026-02-23)
+- **Detail:** `sync_mirror.py` reads FROM TempleOS TO `brain/real-temple-tree/`. It does NOT write local files to the VM. Any new primitive `.HC` file created locally must be deployed via `t.write_file('C:/Home/Ser*.HC', content)` before it can be `#include`-d. Existing primitives (SerDir, SerFileRead, etc.) are already in snap1, so they persist across `loadvm`. New primitives added after snap1 must be written each session.
+- **Fix pattern:** In `freeze()`, call `self.write_file('C:/Home/SerPrint.HC', _SERPRINT_HC)` before the `send_cmd('#include ...')`. The `_SERPRINT_HC` constant in `temple.py` is the source of truth.
+
 ---
 
 ## Stability
@@ -100,6 +105,12 @@ Rules that differ from C and apply everywhere, not just specific files.
 - **Fix pattern:** Always cast explicitly using HolyC syntax: `UartPrint(d[3](U8*))`, `ptr = val(I64*)`.
 - **Why "missing ) at U0":** The JIT parser encounters the type name `U0` (or another type token) in an unexpected position while resolving the implicit conversion — it expects a `)` instead.
 - **Evidence:** SerDir.HC before fix: `UartPrint(d[3])` and `d=d[0]` both generated this warning. After adding explicit casts: silent.
+
+### HolyC `...` variadic forwarding throws `UndefExt`
+- **Status:** Confirmed (2026-02-23)
+- **Detail:** Defining `U0 Foo(U8 *fmt, ...)` and then calling `StrPrint(buf, fmt, ...)` inside it throws `EXCEPT:UndefExt` at call time. HolyC does not support forwarding a `...` arg list to another variadic function the way C's `va_list`/`va_start` does.
+- **Workaround:** Use fixed-arg wrappers with extra I64 params. StrPrint ignores extra args beyond what the format needs, so `U0 SerFmt(U8 *fmt, I64 a, I64 b){StrPrint(buf, fmt, a, b); ...}` is safe to call with only one meaningful arg by padding with 0.
+- **Evidence:** `SP3` probe — `SP3("val=%d", 99)` throws `EXCEPT:UndefExt`. `SP4("val=%d", 99, 0)` with fixed 2 args → `b'val=99'` ✓.
 
 ### Function pointer parameters are duck-typed at the call site
 - **Status:** Confirmed (2026-02-23)

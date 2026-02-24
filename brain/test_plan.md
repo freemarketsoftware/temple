@@ -108,8 +108,8 @@ Build a working NIC driver from scratch. TempleOS is identity-mapped (phys == vi
 
 | Test File | Area | Status | Notes |
 |-----------|------|--------|-------|
-| TestE1000BAR | Read BAR0 MMIO base addr via PCIReadU32; probe status register | ⏳ | Confirms MMIO is accessible; low risk read-only probe |
-| TestE1000MAC | Read burned-in MAC address from e1000 EEPROM / RAL/RAH registers | ⏳ | Needed before any TX/RX |
+| TestE1000BAR | Read BAR0 MMIO base addr via PCIReadU32; probe status, CTRL, RCTL, TCTL, MAC via RAL/RAH | ✅ | 11/11 pass — BAR0=0xFEB80000, CTRL=0x00140240, STATUS=link-up+FD, MAC=52:54:00:12:34:56; standalone only |
+| TestE1000MAC | Read burned-in MAC address from e1000 EEPROM / RAL/RAH registers | ✅ | Covered by TestE1000BAR (RAL0/RAH0 tests); MAC confirmed as 52:54:00:12:34:56 |
 | TestE1000Init | Full NIC init: reset, set MAC, RX/TX descriptor rings, enable | ⏳ | High risk — malformed ring setup can panic; do last |
 | TestE1000Tx | Transmit a raw Ethernet frame (ARP request or padding frame) | ⏳ | Requires TestE1000Init passing |
 | TestE1000Rx | Receive a frame — may use QEMU loopback or ICMP echo from host | ⏳ | Requires TestE1000Init + Tx working |

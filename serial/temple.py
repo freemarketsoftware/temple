@@ -29,6 +29,13 @@ SOCK = '/tmp/temple-serial.sock'
 QMON = '/tmp/qmon.sock'
 TERM = b'\x04\xCA\xFE\xBA\xBE\x04\xFA\xCE'
 
+# Custom primitives not in snap1 — written to VM by freeze()
+_SERPRINT_HC = (
+    b'U8 g_sp[4096];\n'
+    b'U0 SerPrint(U8 *s){SerSend(s);}\n'
+    b'U0 SerFmt(U8 *fmt,I64 a,I64 b){StrPrint(g_sp,fmt,a,b);SerSend(g_sp);}\n'
+)
+
 class TempleException(Exception):
     """Raised when TempleOS throws an unhandled exception during exec."""
     pass
@@ -147,6 +154,8 @@ class Temple:
         self.send_cmd('#include "C:/Home/SerSymExists.HC";')
         self.send_cmd('#include "C:/Home/SerSymList.HC";')
         self.send_cmd('#include "C:/Home/SerMemInfo.HC";')
+        self.write_file('C:/Home/SerPrint.HC', _SERPRINT_HC)
+        self.send_cmd('#include "C:/Home/SerPrint.HC";')
 
     def unfreeze(self):
         """Send EXIT to stop the REPL loop."""

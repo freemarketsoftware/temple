@@ -216,6 +216,13 @@ Rules that differ from C and apply everywhere, not just specific files.
 - **Detail:** `0.1 + 0.2 == 0.3` evaluates to TRUE in TempleOS. In standard IEEE 754 double precision (C, Python), this is FALSE due to rounding. TempleOS uses the x87 FPU in 80-bit extended precision mode, which provides enough extra precision that the accumulated rounding error happens to cancel out for this specific case.
 - **Impact:** Floating-point code ported from other languages should not assume IEEE 754 double precision rounding behavior.
 
+### BUG: Block-scoped variable declarations inside `{}` panic TempleOS
+- **Status:** Confirmed (2026-02-24)
+- **Severity:** High — silent OS panic, no exception, serial goes silent
+- **Behavior:** Declaring variables inside a nested block, e.g. `{ I64 sum = 0, i; ... }`, causes TempleOS to panic when the function is called. The results file is never written.
+- **Workaround:** Declare ALL variables at the top of the function body, before any statements (C89 style). Never use block-scoped declarations.
+- **Evidence:** TestUDPPkt.HC first version used `{ I64 sum=0, i; ... }` twice → no results file. Rewrite with all vars at function top → 8/8 pass.
+
 ### No StrCat in HolyC — use CatPrint
 - **Status:** Confirmed
 - **Detail:** `StrCat` does not exist in TempleOS. `CatPrint(dst, "%s", src)` is the correct replacement. It modifies `dst` in-place and returns a pointer to `dst`.
@@ -241,6 +248,33 @@ Rules that differ from C and apply everywhere, not just specific files.
 ### StrPrint `%n` engineering notation requires extra args
 - **Status:** Confirmed (2026-02-22)
 - **Detail:** `%n` of `1500.0` produced `1.50000000e3` — same as `%e`, no SI prefix (e.g. no `1.5K`). The SI prefix feature appears to require auxiliary format arguments not yet understood. Do not use `%n` expecting automatic SI prefixes.
+
+---
+
+## e1000 NIC Driver
+
+### CRITICAL: PCI Bus Master must be enabled for e1000 DMA to work
+- **Status:** Confirmed (2026-02-23) — fixed in probe_tx7.py
+- **Severity:** Critical — without this, ALL DMA silently returns zeros and no TX ever completes
+- **Symptom:** TDH advances 0→1 (start_xmit runs), TXQE=1 (queue drained), but TXDW=0, TPT=0, DD=0, sta_byte=00. Packet appears transmitted at the MMIO-register level but nothing actually goes out.
+- **Root cause:** After `loadvm snap1`, PCI Command Register for device 0:3:0 (e1000) = `0x0103` (I/O enable + MEM enable). **Bit 2 (Bus Master) = 0.** QEMU's `pci_dma_read` checks this bit; with Bus Master disabled, it fills the descriptor buffer with zeros. `txd_lower=0` → EOP=0 → `process_tx_desc` returns early, xmit_seg never called. RS=0 → `txdesc_writeback` returns 0 (no DD writeback). ICR shows only TXQE, not TXDW.
+- **Fix:** Call `PCIWriteU16(0, 3, 0, 0x04, 0x0107)` before kicking TDT. Sets BM=1; subsequent `pci_dma_read` reads the real descriptor bytes. Confirmed: DD=1, TPT=1, TXDW=1 with the fix.
+- **Why it's not set by default:** TempleOS has no PCI bus-master setup in its boot path. SeaBIOS/BIOS only enables I/O+MEM but not Bus Master for the e1000 because no driver claims it.
+- **Rule:** Every e1000 init function MUST call `PCIWriteU16(0, 3, 0, 0x04, 0x0107)` as its FIRST step.
+
+### CRITICAL: e1000 RX requires Sleep(2000) after RCTL enable before polling
+- **Status:** Confirmed (2026-02-24) — fixed in TestE1000Rx.HC
+- **Severity:** Critical — without this, RX descriptor DD never becomes 1 even after TX packet is sent
+- **Root cause:** QEMU e1000.c `set_rx_control` (called on RCTL write) arms `flush_queue_timer` for `+1000ms` virtual time. While the timer is pending, `e1000_receive_iov` (line 923) explicitly checks `timer_pending(s->flush_queue_timer)` and **returns 0** — causing the packet to be re-queued. Arriving ARP reply from SLiRP is synchronously queued (generated within TDT write handler via SLiRP), but cannot be delivered until the timer fires. The timer fires in QEMU's main loop ~1000ms after RCTL was written.
+- **NOT fixed by:** Writing RDT again after TX kick. Even though `set_rdt` calls `qemu_flush_queued_packets`, `e1000_receive_iov` still returns 0 (timer check), re-queuing the packet.
+- **Fix:** `Sleep(2000)` between TX kick and RX descriptor poll. TempleOS Sleep uses wall-clock time; 2 seconds of real time ≥ 1000ms virtual time → `e1000_flush_queue_timer` fires → `qemu_flush_queued_packets` → `e1000_receive_iov` (timer now not pending) → packet delivered → DD=1.
+- **Receive confirmation:** `sta=0x07` = DD|EOP|IXSM. `len=68` = SLiRP pads 42-byte ARP to 64 bytes + QEMU adds 4-byte FCS (SECRC=0) = 68.
+- **Rule:** Every RX poll sequence MUST have at least `Sleep(2000)` after TX kick and RCTL enable.
+
+### Use U32* for all e1000 MMIO register writes
+- **Status:** Confirmed (2026-02-23) — tested in probe_tx6/tx7
+- **Detail:** QEMU's e1000 MMIO region has `max_access_size=4`. An I64 (8-byte) MMIO write is silently split into two 4-byte writes: `[addr+0]←val[31:0]` and `[addr+4]←val[63:32]`. This second write goes to the NEXT register and may have unintended side effects. For example, `(g_bar0+0x3818)(I64*)[0]=1` also writes 0 to `0x381C` (reserved, harmless), but `(g_bar0+0x3800)(I64*)[0]=tda` also writes 0 to TDBAH (correct) then TDBAH write also touches TDLEN=0 (overwritten by subsequent TDLEN write — net effect correct but fragile).
+- **Rule:** Always use `(addr)(U32*)[0] = val` for MMIO writes. RAM writes (descriptor ring, packet buffer) can use I64* safely.
 
 ---
 

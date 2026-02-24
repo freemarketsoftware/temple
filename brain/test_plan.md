@@ -110,9 +110,9 @@ Build a working NIC driver from scratch. TempleOS is identity-mapped (phys == vi
 |-----------|------|--------|-------|
 | TestE1000BAR | Read BAR0 MMIO base addr via PCIReadU32; probe status, CTRL, RCTL, TCTL, MAC via RAL/RAH | ✅ | 11/11 pass — BAR0=0xFEB80000, CTRL=0x00140240, STATUS=link-up+FD, MAC=52:54:00:12:34:56; standalone only |
 | TestE1000MAC | Read burned-in MAC address from e1000 EEPROM / RAL/RAH registers | ✅ | Covered by TestE1000BAR (RAL0/RAH0 tests); MAC confirmed as 52:54:00:12:34:56 |
-| TestE1000Init | Full NIC init: reset, set MAC, RX/TX descriptor rings, enable | ⏳ | High risk — malformed ring setup can panic; do last |
-| TestE1000Tx | Transmit a raw Ethernet frame (ARP request or padding frame) | ⏳ | Requires TestE1000Init passing |
-| TestE1000Rx | Receive a frame — may use QEMU loopback or ICMP echo from host | ⏳ | Requires TestE1000Init + Tx working |
+| TestE1000Init | Full NIC init: reset, set MAC, RX/TX descriptor rings, enable | ✅ | 10/10 pass — bar0_addr, pci_bus_master, ctrl_rst_cleared, status_lu_fd, TDBAL/TDBAH/TDLEN/TDH/TDT/TCTL all confirmed |
+| TestE1000Tx | Transmit a raw Ethernet frame (ARP request or padding frame) | ✅ | 8/8 pass — DD=1, TXDW=1, TXQE=1, TPT=1; **critical: PCIWriteU16(0,3,0,0x04,0x0107) required to enable Bus Master before DMA works** |
+| TestE1000Rx | Receive a frame — may use QEMU loopback or ICMP echo from host | ✅ | 8/8 pass — ARP request to 10.0.2.2; SLiRP replies with ARP reply (len=68, EtherType=0806, OPER=0002); **CRITICAL: Sleep(2000) required — e1000_receive_iov line 923 returns 0 while flush_queue_timer pending (1000ms virtual time after RCTL write); timer fires → delivers packet** |
 
 ---
 
@@ -122,10 +122,10 @@ Pure computation first (no hardware) — packet construction and checksum. Safe 
 
 | Test File | Area | Status | Notes |
 |-----------|------|--------|-------|
-| TestArpPkt | ARP packet construction + field parsing (pure computation) | ⏳ | No hardware; validates byte-packing of Ethernet+ARP headers |
-| TestIPv4Pkt | IPv4 header construction, ones-complement checksum | ⏳ | Checksum algo must be confirmed before sending real packets |
-| TestUDPPkt | UDP header + checksum (needs IP pseudo-header) | ⏳ | Depends on TestIPv4Pkt checksum being correct |
-| TestICMP | ICMP echo request via e1000 Tx, receive reply via Rx | ⏳ | First live network round-trip; requires Tier 5 complete |
+| TestArpPkt | ARP packet construction + field parsing (pure computation) | ✅ | 13/13 pass — ArpBuildRequest helper confirmed; all ARP fields, byte layout, IPs verified |
+| TestIPv4Pkt | IPv4 header construction, ones-complement checksum | ✅ | 10/10 pass — IPv4Cksum verified: cksum_raw=0x22C1 for src=10.0.2.15→dst=10.0.2.2 UDP/28; verify=0 |
+| TestUDPPkt | UDP header + checksum (needs IP pseudo-header) | ✅ | 8/8 pass — UDPCksum+pseudo-header verified=0; **NOTE: block-scoped `I64 x=0,i;` inside `{}` panics OS — declare all vars at function top** |
+| TestICMP | ICMP echo request via e1000 Tx, receive reply via Rx | ✅ | 8/8 pass — ARP→ICMP echo req→reply; gw_mac=52:55:0A:00:02:02; id/seq echoed back; cksum_valid=0; iters=0 (synchronous after flush_queue_timer fires during ARP Sleep); standalone only |
 
 ---
 

@@ -84,6 +84,30 @@ Active issues, known problems, and notable findings to investigate.
 
 ---
 
+## HolyC Language Behavior
+
+Rules that differ from C and apply everywhere, not just specific files.
+
+### Cast syntax is `expr(type)`, NOT `(type)expr`
+- **Status:** Confirmed
+- **Detail:** HolyC uses postfix cast syntax: `value(TargetType)`. C-style prefix casts `(type)value` are not used.
+- **Examples:** `buf(I64*)`, `d[3](U8*)`, `fp_result(I64)`, `addr(U8*)`
+- **Applies to:** pointer casts, integer-to-float, float-to-integer, any type reinterpretation.
+
+### Implicit integer-to-pointer conversion emits "missing ) at U0"
+- **Status:** Confirmed (2026-02-23)
+- **Detail:** Passing an `I64` value to a function expecting `U8 *` or any pointer type, or assigning `I64` to a pointer variable, causes HolyC's JIT to emit `"missing ) at U0"` to the terminal. The code still compiles and runs, but the warning is noisy and indicates a type mismatch.
+- **Fix pattern:** Always cast explicitly using HolyC syntax: `UartPrint(d[3](U8*))`, `ptr = val(I64*)`.
+- **Why "missing ) at U0":** The JIT parser encounters the type name `U0` (or another type token) in an unexpected position while resolving the implicit conversion — it expects a `)` instead.
+- **Evidence:** SerDir.HC before fix: `UartPrint(d[3])` and `d=d[0]` both generated this warning. After adding explicit casts: silent.
+
+### Function pointer parameters are duck-typed at the call site
+- **Status:** Confirmed (2026-02-23)
+- **Detail:** `Spawn(fn, data, name)` declares `fn` as `U0 (*)(U8 *data)`, but you can pass any `U0 TaskFn(I64 arg)` function and it works — the `data` arg is passed as a 64-bit value regardless of declared type. HolyC does not enforce parameter type matching across function pointer calls.
+- **Implication:** Spawn callbacks can declare their arg as `I64` and receive integer values directly: `Spawn(&MyTask, 42, "T")` where `U0 MyTask(I64 arg)` receives `arg=42`.
+
+---
+
 ## Notable Findings
 
 ### I64_MIN / -1 does NOT throw — compiler eliminates IDIV
@@ -220,6 +244,31 @@ Active issues, known problems, and notable findings to investigate.
 - **Root cause:** Two implicit integer-to-pointer conversions: `UartPrint(d[3])` passed `I64` where `U8 *` was expected, and `d=d[0]` assigned `I64` to `I64 *`. HolyC's JIT emits "missing ) at U0" for these mismatches.
 - **Fix:** Added explicit HolyC casts — `d[3](U8*)` and `d[0](I64*)`. `FilesFind` return also cast explicitly: `FilesFind(path)(I64*)`.
 - **Verified:** Fixed version compiles silently (send_cmd returns `OK` with no error) and correctly lists directory entries.
+
+### Str2I64: `0o` octal prefix is NOT supported
+- **Status:** Confirmed (2026-02-23)
+- **Detail:** `Str2I64("0o17")` returns `0`, not `15`. The `0o` prefix for octal is not recognized. The `0x` (hex) and `0b` (binary) prefixes work correctly.
+- **Workaround:** Use explicit radix parameter: `Str2I64("17", 8)` → 15.
+
+### Str2F64 exponential: exact `==` comparison unreliable
+- **Status:** Confirmed (2026-02-23)
+- **Detail:** `Str2F64("1.5e3") == 1500.0` evaluates to FALSE even though `%.0f` of the result prints `1500`. The x87 extended precision arithmetic used internally by Str2F64 may produce a value infinitesimally different from the 64-bit literal `1500.0`.
+- **Workaround:** Use a range check: `g_f > 1499.0 && g_f < 1501.0`. Exact equality only works reliably for values that are exactly representable (e.g. `Str2F64("-2.5") == -2.5` passes).
+
+### StrScan returns pointer to end of full input string, not stop position
+- **Status:** Confirmed (2026-02-23)
+- **Detail:** `U8 *end = StrScan("99rest", "%d", &i)` — `i` = 99 correctly, but `*end` = 0 (null terminator). StrScan returns a pointer to the end of the entire input string, not the position where matching stopped. This differs from C's `sscanf` which leaves the source pointer unmodified.
+- **Contrast:** `Str2I64("123abc", 10, &end)` DOES set `*end` to `'a'` — the stop position. Use Str2I64 with end_ptr when you need to know where parsing stopped.
+
+### DeathWait does NOT null the task pointer
+- **Status:** Confirmed (2026-02-23)
+- **Detail:** `DeathWait(&task)` documentation implies it sets `*_task = NULL` on return. In practice, the task pointer is unchanged — it still holds the original `CTask *` address after the call returns. Do not rely on the pointer becoming NULL as a "task is dead" indicator.
+- **Workaround:** Track task liveness with a separate flag if needed, or call `TaskValidate(task)` — it returns 0 for a dead/invalid task.
+
+### MStrPrint: caller must Free() the returned string
+- **Status:** Confirmed (2026-02-23)
+- **Detail:** `MStrPrint(fmt, ...)` allocates a new string via MAlloc and returns a pointer to it. The caller owns the memory and must call `Free(s)` when done. Failing to free leaks heap memory permanently (TempleOS has no GC).
+- **Pattern:** `U8 *s = MStrPrint("v=%d", val); ... Free(s);`
 
 ### StrPrint `%f` shows no decimal places by default
 - **Status:** Confirmed (2026-02-23)

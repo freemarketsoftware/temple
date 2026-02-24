@@ -216,10 +216,10 @@ Active issues, known problems, and notable findings to investigate.
 - **Source:** `Kernel/KDate.HC`
 
 ### SerDir.HC: "missing ) at U0" parse error on load
-- **Status:** Confirmed, open
-- **Severity:** Low — cosmetic error, sync_mirror.py loads it and it still functions
-- **Behavior:** When SerDir.HC is included, TempleOS prints `"missing ) at U0"` before executing. The file still compiles and the Dir primitives still work; it's a parse warning not a hard error.
-- **Next step:** Read SerDir.HC source and identify the offending line; likely a forward declaration or function signature that the REPL's JIT chokes on.
+- **Status:** Fixed (2026-02-23)
+- **Root cause:** Two implicit integer-to-pointer conversions: `UartPrint(d[3])` passed `I64` where `U8 *` was expected, and `d=d[0]` assigned `I64` to `I64 *`. HolyC's JIT emits "missing ) at U0" for these mismatches.
+- **Fix:** Added explicit HolyC casts — `d[3](U8*)` and `d[0](I64*)`. `FilesFind` return also cast explicitly: `FilesFind(path)(I64*)`.
+- **Verified:** Fixed version compiles silently (send_cmd returns `OK` with no error) and correctly lists directory entries.
 
 ### StrPrint `%f` shows no decimal places by default
 - **Status:** Confirmed (2026-02-23)

@@ -258,6 +258,33 @@ Rules that differ from C and apply everywhere, not just specific files.
 
 ---
 
+## AgentLoop / TCP Agent
+
+### AgentLoop must launch via serial fire-and-forget (not sendkey)
+- **Status:** Confirmed (2026-02-24)
+- **Detail:** `#include "C:/AI/AgentLoop.HC";` must be sent via `t.s.sendall(b'...\n')` (raw serial write), NOT via `t.send_cmd()` or `t._sendkey()`. SerReplExe wraps ExeFile in a blocking command; if AgentLoop is launched via send_cmd, the REPL blocks waiting for AgentLoop to return, so no further serial commands execute and the test hangs.
+- **Fix:** Send the launch command over raw serial (fire-and-forget), then drive all interaction via the HTTP channel (GET /cmd / POST /result).
+
+### agent_server.py result queue race (fixed)
+- **Status:** Fixed (2026-02-24)
+- **Detail:** Old event-based `_last_result` had a race: if POST /result arrived between `push_cmd()` and `event.clear()` inside `get_result()`, the result was silently lost. Replaced with `_result_queue = queue.Queue()` — each POST enqueues one entry, `get_result()` dequeues in order. No race possible.
+
+### Stale cmd/result queue data causes command misrouting between test runs
+- **Status:** Fixed (2026-02-24)
+- **Detail:** Python module-level `_cmd_queue` and `_result_queue` in agent_server.py persist across test runs when the same process imports the module multiple times. Stale entries from a previous run appear as commands in the next run (observed: "HTTP/1.0 200 OK\r\n..." as a GET /cmd body — a leftover HTTP response body in `_cmd_queue`).
+- **Fix:** Flush both queues at the start of `main()` in test_agent.py before loading the snapshot.
+
+### snap1 must be clean (no AgentLoop running) before test
+- **Status:** Confirmed (2026-02-24)
+- **Detail:** If snap1 is saved while AgentLoop is mid-run, `loadvm snap1` resumes that old instance. The old AgentLoop consumes commands before the new one starts, causing commands to be processed twice.
+- **Fix:** Save snap1 only from a clean state (SerReplExe idle, no AgentLoop running). Verify with `is_frozen()` returning True with no spontaneous GETs to /cmd.
+
+### AgentLoop EXIT must allow ≥8s before draining serial
+- **Status:** Confirmed (2026-02-24)
+- **Detail:** After `push_cmd('EXIT')`, AgentLoop needs up to ~5s to GET the command, receive the HTTP response, write debug.txt, and return. `time.sleep(10)` in test_agent.py covers this. Two `_drain(timeout=5)` calls consume the CAFEBABE pairs from the SerReplExe `#include` invocation.
+
+---
+
 ## e1000 NIC Driver
 
 ### CRITICAL: PCI Bus Master must be enabled for e1000 DMA to work

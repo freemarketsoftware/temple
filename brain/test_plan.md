@@ -136,3 +136,11 @@ Pure computation first (no hardware) — packet construction and checksum. Safe 
 | TestDHCP | DHCP discover/offer/request/ack — get IP from QEMU's built-in DHCP | ✅ | 8/8 pass — Discover→Offer(10.0.2.15)→Request→Ack; xid=12345678 echoed; **BUG: `continue` unsupported in HolyC — use if/else**; standalone only |
 | TestHTTPGet | HTTP GET request to host via QEMU user-mode network (10.0.2.2:8080) | ✅ | 8/8 pass — SYN→SYN-ACK→ACK+GET→HTTP 200; server_isn=0000FA01; ip_total_len=198; rx1 has payload (no pure-ACK from SLiRP); standalone only |
 | TestHTTPPost | HTTP POST to agent_server.py on host:8081; server echoes ECHO:<body> | ✅ | 8/8 pass — SYN→SYN-ACK→ACK+POST→200+ECHO; Content-Length:13; "ECHO:" confirmed in response; payload=157; standalone only |
+
+---
+
+## Tier 8 — Agent Infrastructure
+
+| Test File | Area | Status | Notes |
+|-----------|------|--------|-------|
+| AgentLoop.HC | TCP command/result loop — poll GET /cmd, ExeFile, POST /result | ✅ | 3/3 pass (PONG, arithmetic 42, string hello world); driven by test_agent.py; launch via serial fire-and-forget `#include "C:/AI/AgentLoop.HC";` from SerReplExe context |

@@ -18,8 +18,8 @@ From another terminal / Python session:
 import sys, os, queue, threading, time
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-_cmd_queue   = queue.Queue()
-_last_result = {'body': b'', 'event': threading.Event()}
+_cmd_queue    = queue.Queue()
+_result_queue = queue.Queue()   # one entry per POST /result; no race condition
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -45,8 +45,7 @@ class _Handler(BaseHTTPRequestHandler):
         if self.path == '/result':
             length = int(self.headers.get('Content-Length', 0))
             body   = self.rfile.read(length)
-            _last_result['body'] = body
-            _last_result['event'].set()
+            _result_queue.put(body)   # enqueue; get_result() dequeues in order
             echo = b'ECHO:' + body
             self.send_response(200)
             self.send_header('Content-Type', 'text/plain')
@@ -73,10 +72,10 @@ def push_cmd(cmd: str):
 
 def get_result(timeout: float = 30) -> bytes | None:
     """Block until TempleOS POSTs a result, or timeout. Returns raw bytes."""
-    _last_result['event'].clear()
-    if _last_result['event'].wait(timeout):
-        return _last_result['body']
-    return None
+    try:
+        return _result_queue.get(timeout=timeout)
+    except queue.Empty:
+        return None
 
 
 def start_background(port: int = 8081) -> HTTPServer:

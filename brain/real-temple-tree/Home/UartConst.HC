@@ -1,21 +1,32 @@
-#define UART_DATA 0x3F8
-#define UART_IER 0x3F9
-#define UART_FCR 0x3FA
-#define UART_LCR 0x3FB
-#define UART_MCR 0x3FC
-#define UART_LSR 0x3FD
-#define LSR_RX_READY 0x01
-#define LSR_TX_EMPTY 0x20
-#define LCR_8N1 0x03
-#define LCR_DLAB 0x80
-#define MCR_DTR 0x01
-#define MCR_RTS 0x02
-#define MCR_OUT2 0x08
-#define MCR_LOOPBACK 0x10
-#define FCR_ENABLE 0x01
-#define FCR_CLR_RX 0x02
-#define FCR_CLR_TX 0x04
-#define FCR_TRIG14 0xC0
-#define UART_DIV_115200 1
-#define UART_DIV_9600 12
+#include "C:/Home/UartConst.HC"
+U0 UartInit(U16 div){
+OutU8(UART_LCR,LCR_DLAB);
+OutU8(UART_DATA,div&0xFF);
+OutU8(UART_IER,(div>>8)&0xFF);
+OutU8(UART_LCR,LCR_8N1);
+OutU8(UART_FCR,FCR_ENABLE|FCR_CLR_RX|FCR_CLR_TX|FCR_TRIG14);
+OutU8(UART_MCR,MCR_DTR|MCR_RTS|MCR_OUT2);
+OutU8(UART_IER,0);
+}
+Bool UartTxReady(){
+return (InU8(UART_LSR)&LSR_TX_EMPTY)\!=0;
+}
+U0 UartPutChar(U8 ch){
+while(\!UartTxReady());
+OutU8(UART_DATA,ch);
+}
+Bool UartRxReady(){
+return (InU8(UART_LSR)&LSR_RX_READY)\!=0;
+}
+U8 UartGetChar(){
+while(\!UartRxReady());
+return InU8(UART_DATA);
+}
+I64 UartGetCharTimeout(I64 spins){
+while(spins-->0)if(UartRxReady())return InU8(UART_DATA);
+return -1;
+}
+U0 UartPrint(U8 *str){
+while(*str)UartPutChar(*str++);
+}
 

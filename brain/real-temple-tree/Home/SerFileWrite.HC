@@ -1,1 +1,1 @@
-U0 SerFileWrite(U8 *path){U8 *b=MAlloc(65536);I64 n=0;U8 c;UartPutChar(4);while(1){c=UartGetChar();if(c==4)break;b[n++]=c;}FileWrite(path,b,n);Free(b);}
+U0 SerFileRead(U8 *path){U8 *f;I64 sz;f=FileRead(path,&sz);I64 i;for(i=0;i<sz;i++)UartPutChar(f[i]);UartPutChar(4);UartPutChar(202);UartPutChar(254);UartPutChar(186);UartPutChar(190);UartPutChar(4);UartPutChar(250);UartPutChar(206);Free(f);}

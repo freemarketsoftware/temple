@@ -1,16 +1,26 @@
-#include "C:/Home/SerProto.HC"
-U0 SerReplExe(){
-U8 buf[4096];U8 ex[32];U8 ecode[9];I64 g_ex;I64 ec;
+U8 g_replied=0;
+U0 SerSend(U8 *s){UartPrint(s);UartPutChar(4);g_replied=1;}
+U0 SerSendOk(){SerSend("OK");}
+U0 SerSendErr(U8 *s){UartPrint("ERR:");SerSend(s);}
+U0 SerRecvLine(U8 *buf,I64 max){
+I64 i=0;U8 ch;
+while(i<max-1){
+ch=UartGetChar();
+if(ch==10)break;
+buf[i]=ch;i++;
+}
+buf[i]=0;
+}
+U0 SerRepl(){
+U8 buf[256];
 UartPrint("REPL_READY\n");
 while(1){
+g_replied=0;
 SerRecvLine(buf,256);
-if(!StrCmp(buf,"EXIT"))break;
-g_ex=0;
-FileWrite("C:/Home/_r.HC",buf,StrLen(buf));
-try{ExeFile("C:/Home/_r.HC");}catch{g_ex=1;Fs->catch_except=TRUE;ec=Fs->except_ch;MemCpy(ecode,&ec,8);ecode[8]=0;StrPrint(ex,"EXCEPT:%s",ecode);}
-Del("C:/Home/_r.HC");
-if(g_ex)SerSend(ex);
-SerSendOk();
+if(\\!StrCmp(buf,"EXIT"))break;
+ZorblaxFn(buf);
+if(\\!g_replied)SerSendOk();
 }
 }
-SerReplExe;
+SerRepl;
+

@@ -1,32 +1,24 @@
-#include "C:/Home/UartConst.HC"
-U0 UartInit(U16 div){
-OutU8(UART_LCR,LCR_DLAB);
-OutU8(UART_DATA,div&0xFF);
-OutU8(UART_IER,(div>>8)&0xFF);
-OutU8(UART_LCR,LCR_8N1);
-OutU8(UART_FCR,FCR_ENABLE|FCR_CLR_RX|FCR_CLR_TX|FCR_TRIG14);
-OutU8(UART_MCR,MCR_DTR|MCR_RTS|MCR_OUT2);
-OutU8(UART_IER,0);
+U0 SerSymList(I64 mask){
+  CHashTable *t=Fs->hash_table;
+  CHash *h;I64 i;U8 k[8];
+  while(t){
+    for(i=0;i<=t->mask;i++){
+      h=t->body[i];
+      while(h){
+        if(h->type&mask){
+          if(h->type&64)StrCpy(k,"fun");
+          else if(h->type&8)StrCpy(k,"glbl");
+          else if(h->type&16)StrCpy(k,"class");
+          else StrCpy(k,"oth");
+          UartPrint(h->str);UartPutChar(9);
+          UartPrint(k);UartPutChar(10);
+        }
+        h=h->next;
+      }
+    }
+    t=t->next;
+  }
+  UartPutChar(4);UartPutChar(202);UartPutChar(254);
+  UartPutChar(186);UartPutChar(190);UartPutChar(4);
+  UartPutChar(250);UartPutChar(206);
 }
-Bool UartTxReady(){
-return (InU8(UART_LSR)&LSR_TX_EMPTY)\!=0;
-}
-U0 UartPutChar(U8 ch){
-while(\!UartTxReady());
-OutU8(UART_DATA,ch);
-}
-Bool UartRxReady(){
-return (InU8(UART_LSR)&LSR_RX_READY)\!=0;
-}
-U8 UartGetChar(){
-while(\!UartRxReady());
-return InU8(UART_DATA);
-}
-I64 UartGetCharTimeout(I64 spins){
-while(spins-->0)if(UartRxReady())return InU8(UART_DATA);
-return -1;
-}
-U0 UartPrint(U8 *str){
-while(*str)UartPutChar(*str++);
-}
-

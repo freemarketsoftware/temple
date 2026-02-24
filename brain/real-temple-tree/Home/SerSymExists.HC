@@ -1,4 +1,4 @@
-U0 SerSymExists(U8 *name){
-  CHash *h=HashFind(name,Fs->hash_table,HTT_FUN|HTT_GLBL_VAR|HTT_CLASS);
-  if(h)GStrAdd("1");else GStrAdd("0");
-}
+#include "C:/Home/SerProto.HC"
+U0 SerReplPrint(){U8 buf[256];UartPrint("REPL_READY\n");while(1){SerRecvLine(buf,256);if(\!StrCmp(buf,"EXIT"))break;"CMD: %s\n",buf;SerSendOk();}}
+SerReplPrint;
+

@@ -279,6 +279,15 @@ Rules that differ from C and apply everywhere, not just specific files.
 - **Detail:** If snap1 is saved while AgentLoop is mid-run, `loadvm snap1` resumes that old instance. The old AgentLoop consumes commands before the new one starts, causing commands to be processed twice.
 - **Fix:** Save snap1 only from a clean state (SerReplExe idle, no AgentLoop running). Verify with `is_frozen()` returning True with no spontaneous GETs to /cmd.
 
+### SLiRP delivers stale TCP packets from prior connections after loadvm — port filter required
+- **Status:** Fixed (2026-02-24) — AgentLoop.HC adds dst_port + src_port filter to all RX scans
+- **Root cause:** After `loadvm snap1`, QEMU's SLiRP replays buffered TCP packets from connections that were open when the snapshot was saved (POST /result responses, data ACKs, etc.). These arrive in the NIC RX ring during the first AgHTTP call and are indistinguishable from new responses without port filtering. The old RX scan checked only IPv4+TCP+flags, so stale data packets matched the payload scan and were parsed as GET /cmd responses.
+- **Symptom:** Without filter — GET#1 returned "ECHO:<stale_post_body>" (stale POST /result response), GET#3 returned duplicate PONG command. Wrong commands routed to wrong tests.
+- **Fix:** Added two port checks to all three TCP scan points (SYN-ACK scan, payload scan, split-body continuation):
+  - `[34]==0x1F && [35]==0x91` → src_port == 8081 (packet is from our server)
+  - `[36]==src_hi && [37]==src_lo` → dst_port == our ephemeral port (packet belongs to the CURRENT connection, not a prior one)
+- **Effect:** Stale packets fail the dst_port check (they target an old ephemeral port); current connection packets pass both checks. Now each AgHTTP call sees only packets from its own TCP connection.
+
 ### AgentLoop EXIT must allow ≥8s before draining serial
 - **Status:** Confirmed (2026-02-24)
 - **Detail:** After `push_cmd('EXIT')`, AgentLoop needs up to ~5s to GET the command, receive the HTTP response, write debug.txt, and return. `time.sleep(10)` in test_agent.py covers this. Two `_drain(timeout=5)` calls consume the CAFEBABE pairs from the SerReplExe `#include` invocation.

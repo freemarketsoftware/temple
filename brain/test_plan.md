@@ -143,4 +143,5 @@ Pure computation first (no hardware) — packet construction and checksum. Safe 
 
 | Test File | Area | Status | Notes |
 |-----------|------|--------|-------|
-| AgentLoop.HC | TCP command/result loop — poll GET /cmd, ExeFile, POST /result | ✅ | 3/3 pass (PONG, arithmetic 42, string hello world); driven by test_agent.py; launch via serial fire-and-forget `#include "C:/AI/AgentLoop.HC";` from SerReplExe context |
+| AgentLoop.HC | TCP command/result loop — poll GET /cmd, ExeFile, POST /result | ✅ | 7/7 pass (PONG, arithmetic, string, uptime, eval_i64, define+call, task_list); RST+ACK after each HTTP response prevents SLiRP zombie connections filling the 8-slot RX ring; Fs used for task ring walks (Adam is a function, not CTask*); driven by test_agent.py + Agent class (serial/agent.py) |
+| run_tests.py  | Full HolyC test suite via Agent lifecycle | ✅ | 29 suites / 295 passed, 1 failed (str2i64_oct_prefix — known), 37 obs; uses Agent.start(pre_deploy=...) to deploy test files before AgentLoop launches, then ag.stop() before ag.read_file() to free the serial REPL |

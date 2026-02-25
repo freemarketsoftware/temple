@@ -14,50 +14,46 @@ tooling to look.
 
 **The approach:** Claude reads the kernel source (already mirrored in
 `brain/real-temple-tree/`), identifies suspicious patterns, writes targeted
-HolyC test cases, runs them through the pipeline, and documents findings.
-This is the first real autonomous task — it works entirely within what we
-already have.
+HolyC test cases, runs them through the Agent pipeline, and documents findings.
+The foundation is now solid enough to start this work.
 
 **Why it matters:** Any serious work on TempleOS (networking, UI, bare metal)
 will touch the kernel. Understanding its failure modes first is essential.
+
+**Early findings:** Already documented in `bugs.md` — UAF is silent, double-free panics, MAlloc OOMs panic, CeilI64 wrong for negatives, F64 locals crash functions, typed fp locals break functions, `continue` unsupported, block-scoped vars panic.
 
 ---
 
 ## 2. HTTP Stack
 
-TempleOS has no networking by design — Terry considered the internet a
-distraction. We disagree for the purpose of this project.
+TempleOS has no networking by design. QEMU emulates an e1000 NIC.
 
-QEMU emulates an e1000 NIC. The path is:
+**Status: substantially built.** The full client-side stack is working:
 
 ```
-e1000 NIC driver → ARP / IP → TCP / UDP → HTTP client + server
+e1000 NIC driver ✅ → ARP ✅ → IP ✅ → TCP ✅ → HTTP client ✅ → AgentLoop ✅
 ```
 
-Each layer is a discrete project. The NIC driver is the hardest — it requires
-writing directly to memory-mapped I/O registers and handling interrupts. The
-upper layers (IP, TCP, HTTP) are complex but straightforward HolyC once the
-driver exists.
+- e1000 init, TX, RX: confirmed working (Tier 5 tests, all pass)
+- ARP, IPv4 checksum, TCP, ICMP, UDP: confirmed working (Tier 6 tests)
+- HTTP GET + POST: working (Tier 7 tests, AgentLoop)
+- AgentLoop: persistent GET/cmd → ExeFile → POST/result loop, 7/7 pass
 
-**QEMU-first:** Develop and validate entirely in QEMU before considering
-real hardware. The e1000 is well-documented and QEMU's emulation is
-deterministic.
+**Remaining:** HTTP server (serving from TempleOS), UDP-based services, persistent TCP connections to avoid per-request SYN overhead.
 
-**Why it matters:** An HTTP stack turns TempleOS into a networked OS.
-Claude can serve results, receive code, and interact with external systems.
+**Why it matters:** An HTTP server turns TempleOS into a networked OS that can serve results and receive code without serial bootstrapping.
 
 ---
 
 ## 3. Bare Metal Support
 
 TempleOS runs on real x86-64 hardware today, but with narrow compatibility.
-Terry targeted one specific machine (his own). Modern hardware brings:
-UEFI boot, ACPI power management, diverse NIC / GPU / storage controllers,
-multi-core scheduling improvements.
+Terry targeted one specific machine. Modern hardware brings UEFI boot, ACPI,
+diverse NIC/GPU/storage controllers, multi-core scheduling improvements.
 
-**The approach:** Start with hardware detection — write HolyC probes that
-report what's present (PCI bus scan, CPUID, ACPI tables). Use that data to
-prioritize driver work. One driver at a time.
+**The approach:** Start with hardware detection — HolyC probes reporting what's
+present (PCI bus scan done ✅, CPUID, ACPI tables). Use that data to prioritize
+driver work. One driver at a time.
 
 **Why it matters:** Running on real hardware is the long-term credibility test.
 QEMU is a development environment, not the destination.
@@ -66,32 +62,25 @@ QEMU is a development environment, not the destination.
 
 ## 4. UI Refresh
 
-TempleOS's interface is functional but visually dated and uninviting to new
-users. The DolDoc rendering system is all HolyC — fonts, colors, layout,
-widgets are all modifiable without touching the kernel.
+TempleOS's interface is functional but visually dated. The DolDoc rendering
+system is all HolyC — fonts, colors, layout, widgets are all modifiable without
+touching the kernel.
 
-**The approach:** Incremental. Start with a color scheme update and cleaner
-default fonts. Then richer widgets (proper buttons, panels, scrollbars).
-Eventually a compositor that feels intentional rather than accidental.
-
-**The constraint:** Preserve Terry's design philosophy — no mouse dependency,
-keyboard-first, fast. A refresh should feel like a cleaned-up version of
-TempleOS, not a different OS wearing its skin.
+**The approach:** Incremental. Color scheme, cleaner fonts, then richer widgets.
+Preserve Terry's design philosophy — keyboard-first, fast, no mouse dependency.
 
 ---
 
 ## Sequence
 
-These goals depend on each other. The natural order:
-
-| Phase | Goal | Depends on |
-|-------|------|------------|
-| Now | Code generation pipeline | Foundation (done) |
-| Near | AI workspace | Pipeline |
-| Near | Kernel bug hunting | Pipeline + workspace |
-| Mid | NIC driver / HTTP stack | Kernel understanding |
-| Mid | UI refresh | Kernel stability |
-| Long | Bare metal support | All of the above |
-
-The pipeline is the unlock. Without reliable write → load → execute → iterate,
-none of the above is achievable autonomously.
+| Phase | Goal | Status |
+|-------|------|--------|
+| Done  | Foundation (serial, crash recovery, exception capture) | ✅ |
+| Done  | Code generation pipeline (AgentLoop + Agent class) | ✅ |
+| Done  | HTTP client stack (NIC → TCP → HTTP) | ✅ |
+| Done  | Test suite (29 suites, 295/296 pass) | ✅ |
+| Now   | Kernel bug hunting | 🔄 early findings in bugs.md |
+| Near  | HTTP server on TempleOS | ⏳ |
+| Mid   | Bare metal hardware detection | ⏳ |
+| Mid   | UI refresh | ⏳ |
+| Long  | Bare metal driver support | ⏳ |

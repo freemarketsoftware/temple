@@ -1,16 +1,17 @@
 # Rules
 
-1. Always use Ed to write test scripts on the TempleOS side. Ed works — must be called with a semicolon: `Ed("C:/Home/file.HC");` — without the semicolon, Ed opens non-blocking in a side panel and sendkey input goes to the wrong window.
-2. Always maintain a replica of every file added to TempleOS inside `brain/templerepo/`. Keep it in sync whenever a file is created or modified on the TempleOS side.
-3. Save to snap1 (`savevm snap1`) whenever it makes sense — after major changes, after deploying files, after confirming something works, or at any point where preserving the current state is useful. snap1 is always the latest stable checkpoint.
-4. Don't go on big debug loops. If something fails, stop, clearly state what failed and why, and ask the user before trying more than one fix attempt.
-5. Never delete snap1 (`delvm snap1`). Overwriting it with `savevm snap1` is allowed — deleting it outright is forbidden.
-   Never delete or overwrite `snap_backup` under any circumstances. It is the absolute backup, restored only if the user explicitly instructs it.
-6. When starting an implementation session: use `is_frozen()` to check if the REPL is already running. If not, send `#include "C:/Home/SerReplExe.HC"` via sendtext.sh, then send `Dir;` (also via sendtext.sh) to trigger execution — without `Dir;`, SerReplExe will not send REPL_READY and `is_frozen()` will always return False. Then poll `is_frozen()` until ready. No need to ask the user for confirmation.
-7. Never use the REPL to define code directly. Always write code to a file first (via Ed + deploy script), then load it with `#include` sent through the REPL. Code defined inline via the REPL is not persistent and harder to debug.
-8. Always manually confirm that a TempleOS function exists before using it in any implementation. Test it directly in the TempleOS REPL via sendtext.sh first. Do not trust unverified code from scripts or documentation — only functions confirmed working in the REPL are safe to use.
-9. Always send EXIT to unfreeze TempleOS via the serial socket, never via sendtext.sh: `echo -ne 'EXIT\n' | sudo nc -N -U /tmp/temple-serial.sock`
-10. Never modify TempleOS kernel files. The kernel (C:/Kernel/, C:/Adam/, C:/Compiler/) is off-limits until we have deep understanding of the system and a clear, justified reason to go there. Work exclusively in C:/Home/ and user space.
-11. **Snapshots:** Only two snapshots matter: `snap1` (latest stable state, updated after major changes) and `snap_backup` (absolute fallback, never touched). Do not create named pre-work snapshots. When restarting after a crash or reload, always resume from snap1. Only use a different snapshot if the user explicitly instructs it.
-13. **Unit tests must be written in HolyC on the TempleOS side.** Test logic lives in `C:/AI/tests/TestXxx.HC` files. Each test file runs assertions directly in TempleOS, writes results to `C:/AI/results/` as TSV (name\tstatus\tdetail), and is deployed + executed via `run_hc()`. The Python side only orchestrates: deploy, run, collect results. No test logic in Python.
-14. **Each test file must delete its own results file at the start**, before writing new results: `Del("C:/AI/results/TestXxx.txt");`. This prevents stale results from a previous run being returned if the test fails to execute.
+1. **templerepo sync:** Always maintain `brain/templerepo/` in sync with any file created or modified in `C:/AI/`. This is the source of truth for all TempleOS-side code.
+
+2. **snap1:** The rolling working baseline. Save after major milestones with `savevm snap1`. Never delete it. Overwriting is fine. Save only from a clean state — SerReplExe idle, no AgentLoop running.
+
+3. **Dated backups:** After significant sessions, save a dated snapshot (`snap_YYYYMMDD`) AND push to GitHub. These are permanent — never overwrite a dated snapshot.
+
+4. **No debug marathons:** If something fails, stop, state what failed and why, and ask the user before trying more than one fix attempt.
+
+5. **No kernel modifications:** `C:/Kernel/`, `C:/Adam/`, `C:/Compiler/` are off-limits. Work exclusively in `C:/Home/` and `C:/AI/`.
+
+6. **Tests are HolyC on TempleOS:** Unit test logic lives in `C:/AI/tests/TestXxx.HC`. Tests write TSV results to `C:/AI/results/`. Python orchestrates only (deploy, run, collect). No test logic in Python.
+
+7. **Agent serial conflict:** Once AgentLoop is running, the serial REPL is blocked. File operations via `ag.write_file()` / `ag.read_file()` must happen either via `pre_deploy` (before launch) or after `ag.stop()` (after exit). Never call serial I/O while AgentLoop is live.
+
+8. **Mirror:** Run `sync_mirror.py` and commit `brain/real-temple-tree/` after significant changes to `C:/Home/` on the VM.

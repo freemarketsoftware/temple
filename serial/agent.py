@@ -88,14 +88,16 @@ class Agent:
 
     # ── lifecycle ─────────────────────────────────────────────────────────────
 
-    def start(self, timeout: float = 60) -> bool:
+    def start(self, timeout: float = 60, pre_deploy=None) -> bool:
         """
         Full start sequence:
           1. Flush stale queues
           2. Kill + restart agent_server
           3. Load QEMU snap (clean state)
-          4. Deploy AgentLoop.HC via serial
-          5. Poll PONG until online (up to timeout seconds)
+          4. Optional pre_deploy(temple) callback — runs against the serial
+             REPL before AgentLoop launches (use for file deployment etc.)
+          5. Deploy AgentLoop.HC via serial
+          6. Poll PONG until online (up to timeout seconds)
 
         Returns True if online, False on timeout.
         """
@@ -113,6 +115,8 @@ class Agent:
 
         self._t = Temple()
         self._t.connect()
+        if pre_deploy is not None:
+            pre_deploy(self._t)
         self._deploy()
 
         ok = self._wait_online(timeout=timeout)

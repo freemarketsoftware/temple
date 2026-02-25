@@ -1,21 +1,25 @@
 #!/usr/bin/env python3
 """
-run_tests.py — Deploy and run the full TempleOS test suite via TestRunner.HC
+run_tests.py — Deploy and run the full TempleOS test suite via Agent
 
-Deploys all test files to C:/AI/tests/, runs TestRunner.HC which writes
-a single combined results file, then reads and displays results.
+Loads snap1, deploys all test files to C:/AI/tests/, runs TestRunner.HC
+through AgentLoop, reads and displays results.
 
 Usage:
     sudo python3 serial/run_tests.py
 """
-import sys, os, time
+import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
-from temple import Temple
+from agent import Agent
 
-REPO_DIR = os.path.join(os.path.dirname(__file__), '..', 'brain', 'templerepo')
+REPO_DIR     = os.path.join(os.path.dirname(__file__), '..', 'brain', 'templerepo')
 RESULTS_PATH = 'C:/AI/results/TestResults.txt'
-RUNNER_PATH  = 'C:/AI/tests/TestRunner.HC'
+RUNNER_CMD   = '#include "C:/AI/tests/TestRunner.HC";'
 
+# All tests safe for TestRunner (excludes OS-panicking tests:
+#   TestIntDivZero, TestMallocEdge2/2b/2c/2d, TestMallocEdge3,
+#   TestTasks, TestPCI, TestE1000*, TestDHCP, TestHTTPGet/Post,
+#   TestICMP, TestArpPkt, TestIPv4Pkt, TestUDPPkt)
 TEST_FILES = [
     'TestMalloc.HC',
     'TestIntMath.HC',
@@ -39,47 +43,48 @@ TEST_FILES = [
     'TestFmtSpec.HC',
     'TestFnPtr.HC',
     'TestDateTime.HC',
+    'TestDirOps.HC',
+    'TestF64Edge.HC',
+    'TestQSort.HC',
+    'TestKernelUtils.HC',
+    'TestPointers.HC',
+    'TestStrConv.HC',
     'TestRunner.HC',
 ]
 
 
-def wait_freeze(t, timeout=20):
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        if t.is_frozen(timeout=2):
-            return True
-        time.sleep(0.5)
-    return False
+def make_pre_deploy():
+    """Return a pre_deploy(temple) callback that deploys all test files.
 
-
-def deploy_tests(t):
-    print(f'Deploying {len(TEST_FILES)} test files to C:/AI/tests/...')
-    ok = 0
-    for fname in TEST_FILES:
-        src = os.path.join(REPO_DIR, fname)
-        dst = f'C:/AI/tests/{fname}'
-        if not os.path.exists(src):
-            print(f'  [SKIP] {fname} — not found in templerepo')
-            continue
-        with open(src, 'rb') as f:
-            content = f.read()
-        t.write_file(dst, content)
-        print(f'  [OK]   {fname}  ({len(content)}b)')
-        ok += 1
-    print(f'Deployed {ok}/{len(TEST_FILES)} files.')
-    return ok
+    Runs against the serial REPL before AgentLoop launches — the REPL is
+    free at this point since AgentLoop hasn't been started yet.
+    """
+    def pre_deploy(t):
+        t.mkdir('C:/AI')
+        t.mkdir('C:/AI/tests')
+        t.mkdir('C:/AI/results')
+        print(f'Deploying {len(TEST_FILES)} test files to C:/AI/tests/...')
+        ok = 0
+        for fname in TEST_FILES:
+            src = os.path.join(REPO_DIR, fname)
+            if not os.path.exists(src):
+                print(f'  [SKIP] {fname} — not found in templerepo')
+                continue
+            with open(src, 'rb') as f:
+                content = f.read()
+            t.write_file(f'C:/AI/tests/{fname}', content)
+            print(f'  [OK]   {fname}  ({len(content)}b)')
+            ok += 1
+        print(f'Deployed {ok}/{len(TEST_FILES)} files.')
+    return pre_deploy
 
 
 def parse_results(raw):
-    """Parse TSV results with # section headers. Returns list of (suite, name, status, detail)."""
     rows = []
     suite = '?'
-    lines = raw.decode(errors='replace').splitlines()
-    for line in lines:
-        if not line.strip():
+    for line in raw.decode(errors='replace').splitlines():
+        if not line.strip() or line.startswith('suite\t'):
             continue
-        if line.startswith('suite\t'):
-            continue  # header
         if line.startswith('# '):
             suite = line[2:].strip()
             continue
@@ -87,7 +92,7 @@ def parse_results(raw):
         name   = parts[0] if len(parts) > 0 else '?'
         status = parts[1] if len(parts) > 1 else '?'
         detail = parts[2] if len(parts) > 2 else ''
-        rows.append((suite, name, status, detail.rstrip('\n')))
+        rows.append((suite, name, status, detail.rstrip()))
     return rows
 
 
@@ -108,7 +113,6 @@ def print_results(rows):
             marker = '[FAIL]'
             failed += 1
         print(f'  {marker} {name}: {detail}')
-
     print()
     summary = f'{passed} passed, {failed} failed'
     if obs:
@@ -118,39 +122,28 @@ def print_results(rows):
 
 
 def main():
-    with Temple() as t:
-        # Ensure REPL is running
-        if not t.is_frozen(timeout=3):
-            print('Starting REPL...')
-            t._sendkey('#include "C:/Home/SerReplExe.HC"')
-            time.sleep(1)
-            t._sendkey('Dir;')
-            if not wait_freeze(t, timeout=20):
-                print('ERROR: REPL did not start')
-                sys.exit(1)
-            print('REPL ready.')
-        else:
-            print('REPL already running.')
+    with Agent() as ag:
+        print('Starting agent (loadvm snap1 + deploy + wait)...')
+        if not ag.start(timeout=60, pre_deploy=make_pre_deploy()):
+            print('FAIL: agent did not come online')
+            sys.exit(1)
+        print('Agent online.\n')
 
-        # Deploy all test files
-        deploy_tests(t)
+        print(f'Running TestRunner.HC (timeout 180s)...')
+        ag.run(RUNNER_CMD, timeout=180)
 
-        # Run TestRunner
-        print(f'\nRunning TestRunner (timeout 120s)...')
-        t.send_cmd(f'#include "{RUNNER_PATH}";', timeout=120)
+        # AgentLoop holds the serial REPL while it runs; stop it first so
+        # SerReplExe is free to handle read_file() calls.
+        ag.stop()
 
-        # Read results
-        print(f'Reading {RESULTS_PATH}...')
-        raw = t.read_file(RESULTS_PATH, timeout=15)
+        print('Reading results...')
+        raw = ag.read_file(RESULTS_PATH, timeout=30)
         if not raw:
-            print('ERROR: No results file found.')
-            t.unfreeze()
+            print('ERROR: no results file — TestRunner may have crashed')
             sys.exit(1)
 
         rows = parse_results(raw)
         passed, failed, obs = print_results(rows)
-
-        t.unfreeze()
         sys.exit(0 if failed == 0 else 1)
 
 

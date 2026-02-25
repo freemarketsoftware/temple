@@ -35,14 +35,14 @@ U8  g_agent_rx5[2048];
 U8  g_agent_rx6[2048];
 U8  g_agent_rx7[2048];
 
-U8  g_agent_pkt[1600];      // TX frame (SYN=54, GET=~100, POST=up to ~1200)
+U8  g_agent_pkt[1600];      // TX frame (SYN=54, GET=~100, POST=up to ~1480)
 U8  g_agent_pseudo[12];
 U8  g_agent_gw_mac[6];
 
 U8  g_agent_cmd[2048];      // body received from GET /cmd
-U8  g_agent_out[900];       // command output — must fit in one TCP segment
+U8  g_agent_out[1300];      // command output — stays under 1500-byte MTU frame
 U8  g_agent_post_hdr[128];  // "POST /result HTTP/1.0\r\n..." header
-U8  g_agent_post_req[1100]; // post_hdr + g_agent_out combined
+U8  g_agent_post_req[1500]; // post_hdr + g_agent_out combined
 
 // ── Checksum helpers ──────────────────────────────────────────────────────────
 I64 AgOnesAcc(U8 *data, I64 len) {
@@ -300,6 +300,50 @@ I64 AgHTTP(U8 *http_data, I64 http_len, U8 *out_buf, I64 out_max) {
     }
   }
   out_buf[out_len] = 0;
+
+  // ── Send TCP RST+ACK to close connection cleanly ──────────────────────────
+  // HTTP/1.0: after server sends response+FIN, client never ACKs the FIN.
+  // SLiRP keeps the connection in CLOSE_WAIT and retransmits FINs indefinitely.
+  // After N connections the 8-slot RX ring fills with retransmit FINs during
+  // Sleep(2000), pushing the SYN-ACK for new connections past slot 7 → lost.
+  // Sending RST causes SLiRP to immediately tear down the connection (no
+  // TIME_WAIT, no more retransmits).
+  {
+    I64 rst_seq, rst_ck;
+    rst_seq = 0xCAFEF00E + http_len;  // next seq after SYN(+1) + PSH data
+    MemSet(g_agent_pkt, 0, 64);
+    g_agent_pkt[0]=g_agent_gw_mac[0]; g_agent_pkt[1]=g_agent_gw_mac[1];
+    g_agent_pkt[2]=g_agent_gw_mac[2]; g_agent_pkt[3]=g_agent_gw_mac[3];
+    g_agent_pkt[4]=g_agent_gw_mac[4]; g_agent_pkt[5]=g_agent_gw_mac[5];
+    g_agent_pkt[6]=0x52; g_agent_pkt[7]=0x54; g_agent_pkt[8]=0x00;
+    g_agent_pkt[9]=0x12; g_agent_pkt[10]=0x34; g_agent_pkt[11]=0x56;
+    g_agent_pkt[12]=0x08; g_agent_pkt[13]=0x00;
+    g_agent_pkt[14]=0x45;
+    g_agent_pkt[16]=0x00; g_agent_pkt[17]=40;   // IP total = 40 (hdr+TCP, no data)
+    g_agent_pkt[18]=0x00; g_agent_pkt[19]=0x0C;
+    g_agent_pkt[20]=0x40; g_agent_pkt[22]=64; g_agent_pkt[23]=6;
+    g_agent_pkt[26]=0x0A; g_agent_pkt[27]=0x00; g_agent_pkt[28]=0x02; g_agent_pkt[29]=0x0F;
+    g_agent_pkt[30]=0x0A; g_agent_pkt[31]=0x00; g_agent_pkt[32]=0x02; g_agent_pkt[33]=0x02;
+    g_agent_pkt[34]=src_hi; g_agent_pkt[35]=src_lo;
+    g_agent_pkt[36]=0x1F; g_agent_pkt[37]=0x91;
+    g_agent_pkt[38]=(rst_seq>>24)&0xFF; g_agent_pkt[39]=(rst_seq>>16)&0xFF;
+    g_agent_pkt[40]=(rst_seq>>8)&0xFF;  g_agent_pkt[41]=rst_seq&0xFF;
+    g_agent_pkt[42]=((server_isn+1)>>24)&0xFF;  // ACK = server_isn+1
+    g_agent_pkt[43]=((server_isn+1)>>16)&0xFF;
+    g_agent_pkt[44]=((server_isn+1)>>8)&0xFF;
+    g_agent_pkt[45]=(server_isn+1)&0xFF;
+    g_agent_pkt[46]=0x50; g_agent_pkt[47]=0x14;  // RST|ACK, no data
+    g_agent_pseudo[10]=0x00; g_agent_pseudo[11]=0x14;
+    rst_ck = AgTCPCksum(&g_agent_pkt[34], 20);
+    g_agent_pkt[50]=(rst_ck>>8)&0xFF; g_agent_pkt[51]=rst_ck&0xFF;
+    rst_ck = AgIPCksum(&g_agent_pkt[14]);
+    g_agent_pkt[24]=(rst_ck>>8)&0xFF; g_agent_pkt[25]=rst_ck&0xFF;
+    // TX slot 2 (after SYN=slot0, PSH=slot1); txring[34] holds ≥17 slots
+    (g_agent_txbase + 32)(I64*)[0] = &g_agent_pkt[0];
+    (g_agent_txbase + 40)(I64*)[0] = 54 | (0x0B << 24);
+    (g_agent_bar0 + 0x3818)(U32*)[0] = 3;  // TDT=3
+  }
+
   return 1;
 }
 

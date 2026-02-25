@@ -78,7 +78,7 @@ Preserve Terry's design philosophy — keyboard-first, fast, no mouse dependency
 | Done  | Foundation (serial, crash recovery, exception capture) | ✅ |
 | Done  | Code generation pipeline (AgentLoop + Agent class) | ✅ |
 | Done  | HTTP client stack (NIC → TCP → HTTP) | ✅ |
-| Done  | Test suite (29 suites, 295/296 pass) | ✅ |
+| Done  | Test suite (30 suites, 309/310 pass) | ✅ |
 | Now   | Kernel bug hunting | 🔄 early findings in bugs.md |
 | Near  | HTTP server on TempleOS | ⏳ |
 | Mid   | Bare metal hardware detection | ⏳ |

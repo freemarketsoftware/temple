@@ -76,6 +76,7 @@ These round out API coverage and are directly relevant to the networking/hardwar
 | TestDateTime | Now(), Date2Struct, SysTimerRead, tS, Sleep | ✅ | 14/14 pass — Struct2Date + NowDateTimeStruct panic from JIT context; skipped |
 | TestQSort | QSort on integer and string arrays | ✅ | 11/11 pass — QSortI64 for ints, QSort(width=8) for string ptrs; comparators must be global fns |
 | TestKernelUtils | BCnt (count set bits), EndianU16/U32/I64 (byte-swap) | ✅ | 18/18 pass — all pure computation; round-trip confirmed; ready for network use |
+| TestDolDoc | DocNew, DocSize, DocPrint, DocLock/Unlock, DocRst, DocDel, DocFind, entry walk | ✅ | 14/14 pass — in-memory CDoc ops safe from ExeFile context; DocSize(fresh)=1208B; DocPrint plain→NULL, $$FG$$→entry; lock reentrant→FALSE; DocRst restores baseline; DocFind hit/miss; 2 entries for "hello\n" |
 
 ---
 

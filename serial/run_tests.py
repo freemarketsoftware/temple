@@ -49,6 +49,7 @@ TEST_FILES = [
     'TestKernelUtils.HC',
     'TestPointers.HC',
     'TestStrConv.HC',
+    'TestDolDoc.HC',
     'TestRunner.HC',
 ]
 

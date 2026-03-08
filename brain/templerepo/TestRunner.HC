@@ -36,6 +36,21 @@
 #include "C:/AI/tests/TestPointers.HC"
 #include "C:/AI/tests/TestStrConv.HC"
 #include "C:/AI/tests/TestDolDoc.HC"
+#include "C:/AI/tests/TestDolDoc2.HC"
+#include "C:/AI/tests/TestMath3.HC"
+#include "C:/AI/tests/TestRegistry.HC"
+#include "C:/AI/tests/TestGrPalette.HC"
+#include "C:/AI/tests/TestGrDraw.HC"
+#include "C:/AI/tests/TestTextBase.HC"
+#include "C:/AI/tests/TestShiftEdge.HC"
+#include "C:/AI/tests/TestGrPrint.HC"
+#include "C:/AI/tests/TestMemOverlap.HC"
+#include "C:/AI/tests/TestSwitch.HC"
+#include "C:/AI/tests/TestDefine.HC"
+#include "C:/AI/tests/TestStrEdge.HC"
+#include "C:/AI/tests/TestGrExtra.HC"
+#include "C:/AI/tests/TestCompress.HC"
+#include "C:/AI/tests/TestHashKernel.HC"
 
 U0 TestRunner() {
   U8 *out = MAlloc(131072);
@@ -70,7 +85,21 @@ U0 TestRunner() {
   CatPrint(out, "# TestPointers\n");  TestPointers(out);
   CatPrint(out, "# TestStrConv\n");  TestStrConv(out);
   CatPrint(out, "# TestDolDoc\n");   TestDolDoc(out);
-
+  CatPrint(out, "# TestDolDoc2\n");  TestDolDoc2(out);
+  CatPrint(out, "# TestMath3\n");   TestMath3(out);
+  CatPrint(out, "# TestRegistry\n"); TestRegistry(out);
+  CatPrint(out, "# TestGrPalette\n"); TestGrPalette(out);
+  CatPrint(out, "# TestGrDraw\n");   TestGrDraw(out);
+  CatPrint(out, "# TestTextBase\n"); TestTextBase(out);
+  CatPrint(out, "# TestShiftEdge\n"); TestShiftEdge(out);
+  CatPrint(out, "# TestGrPrint\n");   TestGrPrint(out);
+  CatPrint(out, "# TestMemOverlap\n"); TestMemOverlap(out);
+  CatPrint(out, "# TestSwitch\n");    TestSwitch(out);
+  CatPrint(out, "# TestDefine\n");    TestDefine(out);
+  CatPrint(out, "# TestStrEdge\n");   TestStrEdge(out);
+  CatPrint(out, "# TestGrExtra\n");   TestGrExtra(out);
+  CatPrint(out, "# TestCompress\n");  TestCompress(out);
+  CatPrint(out, "# TestHashKernel\n"); TestHashKernel(out);
   FileWrite("C:/AI/results/TestResults.txt", out, StrLen(out));
   Free(out);
 }

@@ -125,6 +125,22 @@ Rules that differ from C and apply everywhere, not just specific files.
 - **Workaround:** Use fixed-arg wrappers with extra I64 params. StrPrint ignores extra args beyond what the format needs, so `U0 SerFmt(U8 *fmt, I64 a, I64 b){StrPrint(buf, fmt, a, b); ...}` is safe to call with only one meaningful arg by padding with 0.
 - **Evidence:** `SP3` probe — `SP3("val=%d", 99)` throws `EXCEPT:UndefExt`. `SP4("val=%d", 99, 0)` with fixed 2 args → `b'val=99'` ✓.
 
+### BUG: Function-like #define macros with arguments corrupt HolyC JIT preprocessor state
+- **Status:** Confirmed (2026-02-25)
+- **Severity:** High — silent, hard to diagnose; causes compiler state corruption affecting ALL subsequent compilation in the same unit
+- **Behavior:** Defining a function-like macro such as `#define FOO(x) ((x)*2)` or `#define ADD3(a,b,c) ((a)+(b)+(c))` in a file that is #included into a larger compilation unit (e.g., via TestRunner.HC) silently corrupts the HolyC preprocessor/JIT state. All functions defined AFTER the bad #define in the same compilation unit are affected — they may compile to truncated or incorrect code. The JIT does not report an error.
+- **Object-like macros work fine:** `#define CONST 0xABCD`, `#define NEG (-42)`, `#define BITS_ALL 0xFFFFFFFFFFFFFFFF` — all work correctly as constant replacements.
+- **Impact:** Do not use `#define MACRO(args)` form in any HolyC code that runs via ExeFile/TestRunner. Use global constants or helper functions instead.
+- **Evidence:** Adding TestDefine.HC with `#define TD_DOUBLE(x) ((x)*2)` and `#define TD_ADD3(a,b,c) ((a)+(b)+(c))` to TestRunner.HC caused test count to drop from 385 to 295 (90 tests missing from suites compiled after TestDefine.HC). Removing all function-like macros and keeping only `#define CONST value` forms restored full count (406 pass).
+- **Switch statement range case syntax:** Confirmed separately — HolyC uses `case N...M:` (three dots, not two) for range cases.
+
+### HolyC `<<` and `>>` have the same precedence as `*`, `/`, `%`
+- **Status:** Confirmed (2026-02-25)
+- **Detail:** In HolyC, shift operators `<<` and `>>` share precedence with `*`, `/`, `%` and are left-associative. In C, `<<`/`>>` have LOWER precedence than `*`/`/`. This affects any expression mixing shifts with arithmetic.
+- **Example:** `0xFFFF << 10 * x / y` evaluates in HolyC as `((0xFFFF << 10) * x) / y`, not `0xFFFF << (10 * x / y)` as C would compute.
+- **Evidence:** `GrPaletteColorGet` source: `res.r = 0xFFFF<<10*InU8(VGAP_PALETTE_DATA)/0xFC00`. Round-trip tests (TestGrPalette 8/8 pass) confirm the formula computes `(0xFFFF << 10) * dac / 0xFC00`. The C-style interpretation would give `0xFFFF << 0 = 0xFFFF` for all non-zero dac values — contradicted by `GrPaletteColorGet(0)` returning 0 (BLACK) after `PaletteSetStd()`.
+- **Implication:** When porting C expressions that mix `<<`/`>>` with arithmetic, add explicit parentheses. `a << b * c` in HolyC means `(a << b) * c`, not `a << (b * c)`.
+
 ### Function pointer parameters are duck-typed at the call site
 - **Status:** Confirmed (2026-02-23)
 - **Detail:** `Spawn(fn, data, name)` declares `fn` as `U0 (*)(U8 *data)`, but you can pass any `U0 TaskFn(I64 arg)` function and it works — the `data` arg is passed as a 64-bit value regardless of declared type. HolyC does not enforce parameter type matching across function pointer calls.
@@ -161,6 +177,19 @@ Rules that differ from C and apply everywhere, not just specific files.
 - **Status:** Confirmed (2026-02-22)
 - **Detail:** `p1 = MAlloc(64); Free(p1); p2 = MAlloc(64);` — `p1 == p2`. The allocator returns the exact same address on the next same-size allocation. Combined with the use-after-free bug, this means a stale pointer write directly corrupts the next allocation's content.
 
+### MemMove does not exist in TempleOS
+- **Status:** Confirmed (2026-02-25)
+- **Detail:** TempleOS has no `MemMove` function. For overlapping copies where `dst > src`, MemCpy (REP MOVSB forward) will corrupt the tail of the destination. When `dst < src` and regions overlap, REP MOVSB reads src bytes before they are overwritten — this direction works correctly.
+- **Workaround:** Avoid overlapping MemCpy with `dst > src`. If needed, implement a manual backward byte loop.
+- **Evidence:** TestMemOverlap — forward overlap (dst=buf, src=buf+4, len=8): PASS. Backward overlap (dst=buf+4, src=buf, len=8): dst[4..7]={0,1,2,3} correct but dst[8]=0 (should be 4) — tail corrupted because src bytes were overwritten before being read.
+
+### x86 shift count is masked to low 6 bits (mod 64)
+- **Status:** Confirmed (2026-02-25)
+- **Detail:** x86 SAL/SAR/SHL/SHR instructions mask the shift count to the low 6 bits (count mod 64). Shift counts ≥ 64 do NOT produce zero — they shift by `count mod 64`. This is x86 ISA behavior, not specific to HolyC, but relevant to any bit-manipulation code.
+- **Examples:** `1 << 64` = `1 << (64 mod 64)` = `1 << 0` = 1 (not 0). `1 << 127` = `1 << (127 mod 64)` = `1 << 63` = I64_MIN.
+- **Impact:** Any loop or dynamic shift using a count that might reach 64+ will produce unexpected results instead of zeroing out the value. Guard with `if (count >= 64) result = 0; else result = val << count;`
+- **Evidence:** TestShiftEdge — `shl_1_by64_mod` OBS got=1; `shl_1_by127_mod` OBS got=-9223372036854775808.
+
 ### Del(path) does not delete directories by default
 - **Status:** Confirmed (2026-02-23)
 - **Severity:** Medium — silent no-op, no error reported
@@ -195,9 +224,9 @@ Rules that differ from C and apply everywhere, not just specific files.
 - **Evidence:** TestFnPtr.HC — first version with local fp vars produced no results file; rewrite using global fp vars: 12/12 pass.
 
 ### Ternary operator `?:` unreliable with pointer/comparison conditions
-- **Status:** Confirmed (2026-02-22)
-- **Detail:** `p != 0 ? "PASS" : "FAIL"` causes a silent exception in HolyC compiled files. Integer ternary (`1 ? 42 : 0`) also fails in exec_str context. Root cause unknown — may be related to `?` being a help operator in TempleOS's interactive mode interfering with compilation.
-- **Workaround:** Always use `if/else` to assign a status variable, then use the variable in StrPrint. Never use inline ternary in TempleOS-side test code.
+- **Status:** Confirmed (2026-02-22, extended 2026-02-25)
+- **Detail:** `p != 0 ? "PASS" : "FAIL"` causes a silent exception in HolyC compiled files. Integer ternary (`1 ? 42 : 0`) also fails in exec_str context. Root cause unknown — may be related to `?` being a help operator in TempleOS's interactive mode interfering with compilation. Extended (2026-02-25): ANY ternary with a pointer condition crashes — `_e?1:0`, `ptr?a:b`, `_d?1:-1`, `U8 *s="hi"; s?StrLen(s):-1` — all crash with empty return. The crash is on the ternary itself, not on dereferencing NULL: even `CDocEntry *_e=DocPrint(...); _e?1:0` with a valid non-NULL pointer crashes. if/else is always safe.
+- **Workaround:** Always use `if/else`. Never use `?:` with any pointer condition in TempleOS HolyC. `CDocEntry *_e=DocPrint(...); I64 _t=-1; if(_e) _t=_e->type_u8;` works correctly.
 
 ### HolyC local variables do NOT truncate on assignment
 - **Status:** Confirmed (2026-02-22)
@@ -230,6 +259,11 @@ Rules that differ from C and apply everywhere, not just specific files.
 - **Workaround:** Declare ALL variables at the top of the function body, before any statements (C89 style). Never use block-scoped declarations.
 - **Evidence:** TestUDPPkt.HC first version used `{ I64 sum=0, i; ... }` twice → no results file. Rewrite with all vars at function top → 8/8 pass.
 
+### StrCpy is U0 (void) — does not return dst
+- **Status:** Confirmed (2026-03-07)
+- **Detail:** `StrCpy(dst, src)` returns `U0` (void). Unlike C's `strcpy` which returns `char *dst`, HolyC's StrCpy has no return value. Assigning the result to a pointer variable returns garbage from the return register.
+- **Also:** `StrPrint(dst, fmt, ...)` DOES return `U8 *dst`. `CatPrint(dst, fmt, ...)` DOES return `U8 *dst`.
+
 ### No StrCat in HolyC — use CatPrint
 - **Status:** Confirmed
 - **Detail:** `StrCat` does not exist in TempleOS. `CatPrint(dst, "%s", src)` is the correct replacement. It modifies `dst` in-place and returns a pointer to `dst`.
@@ -255,6 +289,40 @@ Rules that differ from C and apply everywhere, not just specific files.
 ### StrPrint `%n` engineering notation requires extra args
 - **Status:** Confirmed (2026-02-22)
 - **Detail:** `%n` of `1500.0` produced `1.50000000e3` — same as `%e`, no SI prefix (e.g. no `1.5K`). The SI prefix feature appears to require auxiliary format arguments not yet understood. Do not use `%n` expecting automatic SI prefixes.
+
+---
+
+## DolDoc API
+
+### Only a subset of DOCT_* symbols are accessible from ExeFile context
+- **Status:** Confirmed (2026-02-25)
+- **Detail:** Not all `DOCT_*` defines from KernelA.HH are accessible as named symbols from JIT-compiled ExeFile code. Some cause undefined-symbol crashes.
+- **DEFINED (safe to use by name):** DOCT_TEXT=0, DOCT_NEW_LINE=1, DOCT_TAB=3, DOCT_CURSOR=5, DOCT_INVERT=22, DOCT_ANCHOR=27, DOCT_LINK=28, DOCT_MACRO=33
+- **UNDEFINED (crash on reference):** DOCT_FG, DOCT_BK, DOCT_COLOR, DOCT_DEFINE, DOCT_BUTTON, DOCT_HTOC, DOCT_NEWLINE, DOCT_SHIFT, DOCT_ESC, DOCT_PLAIN_TEXT, DOCT_TOGGLE, DOCT_SIZE, DOCT_FORM, DOCT_MARK
+- **Workaround:** Use numeric literals for undefined names: DOCT_FOREGROUND=15, DOCT_BLINK=21, DOCT_BACKGROUND=16. Or define your own: `#define MY_FG 15`.
+- **Evidence:** `ag.run("CatPrint(g_agent_out,\"%d\",DOCT_TEXT)")` → `0`. `ag.run("CatPrint(g_agent_out,\"%d\",DOCT_FG)")` → empty (crash). Verified via exhaustive probe of all DOCT_ names in KernelA.HH (2026-02-25).
+
+### DocAnchorFind requires correct $$AN$$ syntax and aux_str field
+- **Status:** Confirmed (2026-02-25)
+- **Detail:** `DocAnchorFind(doc, name)` looks up anchor entries by comparing `name` against `doc_e->aux_str` (only when `doc_e->de_flags & DOCEF_AUX_STR` is set). The `A=` parameter in DolDoc syntax populates `aux_str`. The correct tag syntax to insert a findable anchor is: `$$AN,"display_text",A="anchor_name"$$`. Simplified forms like `$$AN,lbl$$` or `$$AN,,A="name"$$` produce `type_u8=42` (DOCT_ERROR) instead of `type_u8=27` (DOCT_ANCHOR) and will never be found. The form `$$AN,"display",A="name"$$` with both fields populated produces `type_u8=27` and sets `aux_str="name"` with the `DOCEF_AUX_STR` flag.
+- **Evidence:** `$$AN,"lbl"$$` → type=27, but no aux_str → find=0. `$$AN,lbl$$` or `$$AN,,A="name"$$` → type=42 (DOCT_ERROR) → find=0. `$$AN,"label",A="myanchor"$$` → type=27, aux_str="myanchor" → find=1.
+- **Workaround:** Always use the full form: `DocPrint(doc, "$$AN,\"display\",A=\"anchor_name\"$$");`
+
+### DocPrint returns NULL after DocRst on doc with no existing entries
+- **Status:** Confirmed (2026-02-25)
+- **Detail:** `DocRst(doc, TRUE)` clears all entries from the document (walk before: N entries, walk after: 0 entries). If `DocPrint` is called immediately after `DocRst` on a doc that had no entries before `DocRst`, it returns NULL. This is a known edge case — `DocRst` on a fresh empty `DocNew` doc followed by `DocPrint` returns a valid pointer; the issue only manifests in some configurations.
+- **Evidence:** `DocNew` → `DocRst(TRUE)` → `DocPrint("$$FG,4$$")` → `eptr=20A3370` (valid). The NULL case observed in an earlier probe may have been a transient state.
+- **Workaround:** Check the return value of `DocPrint` with `if(_e)` (not ternary `_e?...:...`) before dereferencing.
+
+### DocEntryDel decrements entry count and total_size correctly
+- **Status:** Confirmed (2026-02-25)
+- **Detail:** `DocEntryDel(doc, entry)` works correctly. After inserting entries with DocPrint and deleting one with DocEntryDel, the entry count decreases by 1 (cnt0=4→cnt1=3 for a two-DocPrint doc). DocSize also reflects the deletion (sz0=1448→sz1=1312, delta=136 bytes = one CDocEntry).
+- **Evidence:** Group2a: cnt0=4, cnt1=3; Group2b: sz0=1448, sz1=1312.
+
+### DocNew creates an empty linked list (head.next == head sentinel on fresh doc)
+- **Status:** Confirmed (2026-02-25)
+- **Detail:** A freshly created doc via `DocNew(NULL, Fs)` has zero entries (head.next == doc sentinel). DocPrint("text\n") adds exactly 2 entries: one DOCT_TEXT (type=0) and one DOCT_NEW_LINE (type=1). DocRst(doc, TRUE) clears all entries back to 0.
+- **Evidence:** `DocNew` + count walk → 0 entries. `DocPrint("x\n")` → 2 entries. `DocRst(TRUE)` → 0 entries.
 
 ---
 
@@ -370,6 +438,13 @@ Rules that differ from C and apply everywhere, not just specific files.
 - **Status:** Confirmed (2026-02-23)
 - **Detail:** `MStrPrint(fmt, ...)` allocates a new string via MAlloc and returns a pointer to it. The caller owns the memory and must call `Free(s)` when done. Failing to free leaks heap memory permanently (TempleOS has no GC).
 - **Pattern:** `U8 *s = MStrPrint("v=%d", val); ... Free(s);`
+
+### VGA palette round-trip: only 4 exact U16 values per channel
+- **Status:** Confirmed (2026-02-25)
+- **Detail:** `GrPaletteColorSet` converts U16 → 6-bit DAC via `>>10`. `GrPaletteColorGet` scales back with `(0xFFFF<<10)*dac/0xFC00`. Exact round-trips only for the four U16 values where `v>>10` is a clean divisor of 65535/63: `0x0000` (d=0), `0x5555` (d=21), `0xAAAA` (d=42), `0xFFFF` (d=63). All other U16 values are lossy — e.g. `0x8000` → DAC writes 32 → reads back as 33285 ≠ 0x8000.
+- **Consequence:** The standard 16 CGA palette (`gr_palette_std`, `gr_palette_gray`) is built entirely from these four values per channel, so all standard colors survive `GrPaletteColorSet`→`GrPaletteColorGet` exactly. Custom colors with arbitrary U16 components will not read back faithfully.
+- **Workaround:** Compose custom palette colors only from `{0x0000, 0x5555, 0xAAAA, 0xFFFF}` per channel.
+- **Evidence:** TestGrPalette 8/8 pass — set_blue/red/green_roundtrip all exact; `PaletteSetStd` → `GrPaletteColorGet(1)` returns exactly `0xAAAA` (original DKBLUE b component).
 
 ### StrPrint `%f` shows no decimal places by default
 - **Status:** Confirmed (2026-02-23)

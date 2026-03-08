@@ -140,9 +140,31 @@ Pure computation first (no hardware) — packet construction and checksum. Safe 
 
 ---
 
+## Tier 3B — UI / Graphics
+
+| Test File | Area | Status | Notes |
+|-----------|------|--------|-------|
+| TestDolDoc2 | DocEntryDel, entry type_u8, DocAnchorFind | ✅ | 9/9 pass — ternary crashes HolyC; DocWrite/DocRead/DocGoToLine deferred (DocGoToLine calls DocRecalc(RECALCt_FIND_CURSOR)+DCAlias which is risky from ExeFile) |
+| TestGrPalette | GrPaletteColorSet/Get round-trip, 16-color values, restore | ✅ | 8/8 pass — VGA DAC 6-bit; exact round-trip for 0x0000/0x5555/0xAAAA/0xFFFF; PaletteSetStd restores |
+| TestTextBase | TextRect, gr.text_base read/write, attr byte packing | ✅ | 5/5 pass — cell = (attr<<8)|char as U32; TEXT_COLS=80; row 0 used for writes; restored after |
+| TestGrDraw | DCNew/DCDel, GrRect, GrLine, GrFillCircle on offscreen DC | ✅ | 7/7 pass — dc->body pixel read-back; GrRect retval=1024 (32*32); all primitives draw color 15 |
+| TestMath3 | Arg (ATan2), Exp, Ln, Log2, Log10, Pow — complete math API coverage | ✅ | 17/17 pass — all F64 global (locals crash JIT); Arg(x,y)=atan2(y,x); range checks for non-exact FP results |
+| TestRegistry | RegWrite, RegExe, RegDft, RegCnt | ✅ | 10/10 pass — RegExe executes stored HolyC and returns I64; RegDft: FALSE=new, TRUE=existed; RegCnt: 4 entries for "42;\n" content; stored as HolyC in ~/Registry.HC.Z |
+| TestGrPrint | GrPrint on offscreen DC — font rendering, color index, fmt args | ✅ | 6/6 pass — GrPrint(dc, x, y, "fmt", ...) uses dc->color; FONT_WIDTH=8 FONT_HEIGHT=8; pixels = color index 0-15; retval=1 |
+| TestShiftEdge | Shift edge cases: SAR, large counts, boundary I64 values | ✅ | 10 pass 2 OBS — SAR fills with sign bit; I64_MAX<<1=-2; x86 masks count mod 64: 1<<64=1, 1<<127=I64_MIN |
+| TestMemOverlap | MemCpy overlap behavior (MemMove absent) | ✅ | 4 pass 2 OBS — forward overlap (dst<src) works; backward overlap corrupts tail (REP MOVSB reads overwritten bytes); MemMove does not exist |
+| TestSwitch | switch/case, default, range cases (case N...M:), fall-through | ✅ | 12/12 pass — range syntax is `...` (3 dots); negative ranges work; fall-through confirmed; char ranges 'A'...'Z' work |
+| TestDefine | #define constant macros (object-like only) | ✅ | 9/9 pass — constant macros work; function-like macros with args corrupt HolyC JIT preprocessor state (see bugs.md) |
+| TestStrEdge | StrPrint/StrCpy/StrNew/CatPrint return values and edge cases | ✅ | 9/9 pass — StrPrint returns dst U8*; StrCpy is U0 (void); StrNew heap-copies; CatPrint returns dst |
+| TestGrExtra | GrPlot, GrFloodFill, GrEllipse on offscreen DC | ✅ | 8/8 pass — GrPlot returns Bool; GrFloodFill fills whole cleared DC (retval=1024=32*32); GrEllipse outline only (center empty) |
+| TestCompress | CompressBuf/ExpandBuf roundtrip | ✅ | 7/7 pass — short string, repetitive data, longer text all roundtrip correctly; both buffers caller-freed |
+| TestHashKernel | HashFind on Fs->hash_table for kernel and user symbols | ✅ | 7/7 pass — HTT_FUN=0x40; finds MAlloc/StrLen/StrPrint/TestMalloc; miss returns NULL; mask=-1 also works; sym->str matches searched name |
+
+---
+
 ## Tier 8 — Agent Infrastructure
 
 | Test File | Area | Status | Notes |
 |-----------|------|--------|-------|
 | AgentLoop.HC | TCP command/result loop — poll GET /cmd, ExeFile, POST /result | ✅ | 7/7 pass (PONG, arithmetic, string, uptime, eval_i64, define+call, task_list); RST+ACK after each HTTP response prevents SLiRP zombie connections filling the 8-slot RX ring; Fs used for task ring walks (Adam is a function, not CTask*); driven by test_agent.py + Agent class (serial/agent.py) |
-| run_tests.py  | Full HolyC test suite via Agent lifecycle | ✅ | 29 suites / 295 passed, 1 failed (str2i64_oct_prefix — known), 37 obs; uses Agent.start(pre_deploy=...) to deploy test files before AgentLoop launches, then ag.stop() before ag.read_file() to free the serial REPL |
+| run_tests.py  | Full HolyC test suite via Agent lifecycle | ✅ | 45 suites / 437 passed, 1 failed (str2i64_oct_prefix — known), 41 obs; uses Agent.start(pre_deploy=...) to deploy test files before AgentLoop launches, then ag.stop() before ag.read_file() to free the serial REPL |
